@@ -10,11 +10,11 @@ def getInitControlG(tPath):
     Param:
         tPath: 含有控制人数据的excel表格
     Returns: 
-        df: 读取excel表格得到的DataFrame
+        subG: 根据表格数据切分得到的子图集合, 每个元素都是一副子图
     """
     control = pd.read_csv(tPath, encoding="gb2312")
     # 将列名索引修改为英文
-    control.columns = ["relTarget", "src", "destn", "relType", "rate"]
+    control.columns = ["relTag", "src", "destn", "relType", "rate"]
     # 将比例大于100的异常值修正为100，并归一化
     control.rate[control.rate >= 100] = 100
     control["rate"] /= 100
@@ -23,53 +23,24 @@ def getInitControlG(tPath):
     control.relType[control.relType == "Investment"] = 0
     # print(control)
 
-    # Control关系中，关系标识和关系类型一一对应
-    # 关系标志共39910
-
-    # 控制人共70420个节点
-    co = list()  # 节点名称, 下标对应节点编号
-    codict = dict()  # 节点所属的子图, {节点名称: 所属子图号}
-    G = nx.DiGraph()  # 原始有向图
-    i = 0  # 节点编号
+    # Control关系中，relTag和src一一对应
+    # relTag共39910
+    G = nx.DiGraph()
+    # 控制人共70420个节点, 构建初始图G
     for _, row in control.iterrows():
-        if row["src"] not in co:
-            co.append(row["src"])
-            codict[row["src"]] = i
-            i += 1
-        if row["destn"] not in co:
-            co.append(row["destn"])
-            codict[row["destn"]] = i
-            i += 1
-        # 用节点编号作为画图的依据
-        x, y = co.index(row["src"]), co.index(row["destn"])
-        G.add_nodes_from([x, y])
-        G.add_edge(x, y)
-    # 在co内使用并查集思想划分子图, 初始所属子图即为编号
-    def findFather(x):
-        if codict[x] != co.index(x):
-            codict[x] = findFather(co[codict[x]])
-        return codict[x]
-
-    for _, row in control.iterrows():
-        x = findFather(row["src"])
-        y = findFather(row["destn"])
-        codict[co[x]] = y
-    for c in codict:
-        findFather(c)
-    # 按子图编号取出各点
-    subGNodes = dict()
-    for c in codict:
-        if codict[c] not in subGNodes:
-            subGNodes[codict[c]] = list()
-        subGNodes[codict[c]].append(c)
-    print(subGNodes)
-    print(len(subGNodes))
-    subControlG = list()
-    for sub in subGNodes:
-        subControlG.append(nx.subgraph(G, subGNodes[sub]))
-    print(subControlG)
-    print(len(subControlG))
-    return subControlG
+        G.add_edge(
+            row["src"],
+            row["destn"],
+            rate=row["rate"],
+            relTag=row["relTag"],
+            relType=row["relType"],
+        )
+    # 切分子图
+    tmp = nx.to_undirected(G)
+    subG = list()
+    for c in nx.connected_components(tmp):
+        subG.append(G.subgraph(c))
+    return subG
 
 
 def getSubgraphFromInitG(G):
@@ -85,3 +56,20 @@ def getSubgraphFromInitG(G):
 
 if __name__ == "__main__":
     controlG = getInitControlG("./backend/res/control.csv")
+    # 各个子图的节点数量
+    nodesNum = dict()
+    for item in controlG:
+        if len(item.nodes()) not in nodesNum:
+            nodesNum[len(item.nodes())] = 0
+        nodesNum[len(item.nodes())] += 1
+    print(nodesNum)
+    # nx.draw(
+    #     controlG[5],
+    #     # pos=nx.spring_layout(G),
+    #     with_labels=True,
+    #     label_size=1000,
+    #     node_size=1000,
+    #     font_size=20,
+    #     # edge_labels=edge_labels,
+    # )
+    # plt.show()
