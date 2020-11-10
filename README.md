@@ -16,12 +16,6 @@
 git clone https://github.com/FutureXZC/nxpy-d3js-analysis
 ```
 
-### 分支管理
-
-```
-git checkout -b your-name
-```
-
 ### commit格式规范
 
 - bug fix：[!]: 修复的bug描述
