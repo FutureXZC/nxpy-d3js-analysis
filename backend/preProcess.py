@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def getInitControlG(path):
     """
-    读取控制人关系的excel表格到DataFrame
+    读取控制人关系的excel表格到DataFrame, 并切分子图
     Param:
         path: 含有控制人数据的excel表格
     Returns: 
@@ -53,7 +53,7 @@ def getInitControlG(path):
 
 def getInitGuaranteeG(path):
     """
-    读取担保关系的excel表格到DataFrame
+    读取担保关系的excel表格到DataFrame, 并切分子图
     Param:
         path: 含有担保关系数据的excel表格
     Returns: 
@@ -102,6 +102,67 @@ def getInitGuaranteeG(path):
     return subG
 
 
+def getInitmoneyCollectionG(path):
+    """
+    读取资金归集的excel表格到DataFrame, 并切分子图
+    Param:
+        path: 含有资金归集数据的excel表格
+    Returns: 
+        subG: 根据表格数据切分得到的子图集合, 每个元素都是一副子图
+    """
+    # 由于原csv中存在非utf8字符，需先将其读取为二进制文件流，过滤掉非uft8字符
+    with open(path, "rb") as csv_in:
+        # 过滤后的内容存在temp.csv中
+        with open("./backend/res/temp.csv", "w", encoding="utf-8") as csv_temp:
+            for line in csv_in:
+                if not line:
+                    break
+                else:
+                    line = line.decode("utf-8", "ignore")
+                    csv_temp.write(str(line).rstrip() + "\n")
+    # 通过处理完成后的temp.csv读取资金归集数据
+    moneyCollection = pd.read_csv("./backend/res/temp.csv", sep=",", encoding="utf8")
+    # 仅保留有价值的列，其余数据删除
+    moneyCollection = moneyCollection[
+        [
+            "zhangh",  # 账号
+            "duifzh",  # 对方账户
+            "jiaoym",  # 交易码
+            "jiedbz",  # 借贷标志
+            "jio1je",  # 交易金额
+            "jioyrq",  # 交易日期
+            "jioysj",  # 交易时间
+            "jiluzt",  # 记录状态
+            "zhyodm",  # 摘要
+        ]
+    ]
+    # moneyCollection.columns = ["src", "destn", "time", "guarType", "amount"]
+    print(moneyCollection)
+
+    # 构建初始图G
+    # G = nx.DiGraph()
+    # for _, row in moneyCollection.iterrows():
+    #     G.add_node(row["src"])
+    #     G.add_node(row["destn"])
+    #     G.add_edge(
+    #         row["src"], row["destn"], guarType=row["guarType"], amount=row["amount"],
+    #     )
+    # # 切分子图
+    # tmp = nx.to_undirected(G)
+    subG = list()
+    # for c in nx.connected_components(tmp):
+    #     subG.append(G.subgraph(c))
+    # # print(len(subG))  # 个子图
+    # # 各个子图的节点数量
+    # nodesNum = dict()
+    # for item in subG:
+    #     if len(item.nodes()) not in nodesNum:
+    #         nodesNum[len(item.nodes())] = 0
+    #     nodesNum[len(item.nodes())] += 1
+    # print(nodesNum)
+    return subG
+
+
 def getRoot(subG, metric, threshold):
     """
     根据指标获取子图的根节点
@@ -144,7 +205,8 @@ def getSubgraphFromInitG(G):
 if __name__ == "__main__":
     # controlG = getInitControlG("./backend/res/control.csv")
     # controlG = getRoot(controlG, "rate", 0.5)
-    guaranteeG = getInitGuaranteeG("./backend/res/guarantee.csv")
+    # guaranteeG = getInitGuaranteeG("./backend/res/guarantee.csv")
+    moneyCollection = getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
 
     # nx.draw(
     #     controlG[5],
