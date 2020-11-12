@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -87,17 +88,17 @@ def getInitGuaranteeG(path):
         if len(item.nodes()) not in nodesNum:
             nodesNum[len(item.nodes())] = 0
         nodesNum[len(item.nodes())] += 1
-        if len(item.nodes()) == 23:
-            nx.draw(
-                item,
-                # pos=nx.spring_layout(G),
-                # with_labels=True,
-                # label_size=1000,
-                # node_size=1000,
-                # font_size=20,
-                # edge_labels=edge_labels,
-            )
-            plt.show()
+        # if len(item.nodes()) == 23:
+        #     nx.draw(
+        #         item,
+        #         # pos=nx.spring_layout(G),
+        #         # with_labels=True,
+        #         # label_size=1000,
+        #         # node_size=1000,
+        #         # font_size=20,
+        #         # edge_labels=edge_labels,
+        #     )
+        #     plt.show()
     print(nodesNum)
     return subG
 
@@ -121,45 +122,77 @@ def getInitmoneyCollectionG(path):
                     line = line.decode("utf-8", "ignore")
                     csv_temp.write(str(line).rstrip() + "\n")
     # 通过处理完成后的temp.csv读取资金归集数据
-    moneyCollection = pd.read_csv("./backend/res/temp.csv", sep=",", encoding="utf8")
+    moneyCollection = pd.read_csv("./backend/res/temp.csv", encoding="utf8")
+    # 将时间处理为datetime格式，便于后期计算
+    txnDate = [
+        str(x)[0:4] + "-" + str(x)[4:6] + "-" + str(x)[6:8]
+        for x in moneyCollection["jioyrq"]
+    ]
+    txnTime = map(str, moneyCollection["jioysj"])
+    txnTime = [
+        str(x // 10000) + ":" + str(x % 10000 // 100) + ":" + str(x % 100)
+        for x in moneyCollection["jioysj"]
+    ]
+    txnDateTime = [
+        datetime.datetime.strptime(x[0] + " " + x[1], "%Y-%m-%d %H:%M:%S")
+        for x in zip(txnDate, txnTime)
+    ]
+
     # 仅保留有价值的列，其余数据删除
     moneyCollection = moneyCollection[
         [
-            "zhangh",  # 账号
+            "zhangh",  # 本人账号
             "duifzh",  # 对方账户
             "jiaoym",  # 交易码
-            "jiedbz",  # 借贷标志
             "jio1je",  # 交易金额
-            "jioyrq",  # 交易日期
-            "jioysj",  # 交易时间
+            # "txnDateTime",  # 交易日期和时间
+            "jiedbz",  # 借贷标志
             "jiluzt",  # 记录状态
             "zhyodm",  # 摘要
         ]
     ]
-    # moneyCollection.columns = ["src", "destn", "time", "guarType", "amount"]
-    print(moneyCollection)
+    # txn: transaction, recip: reciprocal
+    moneyCollection.columns = [
+        "myId",  # 本人账号
+        "recipId",  # 对方账户
+        "txnCode",  # 交易码
+        "txnAmount",  # 交易金额
+        # "txnDateTime",  # 交易日期和时间
+        "isLoan",  # 借贷标志
+        "status",  # 记录状态
+        "abstract",  # 摘要
+    ]
+    moneyCollection.insert(4, "txnDateTime", txnDateTime)
+    # print(moneyCollection)
 
     # 构建初始图G
-    # G = nx.DiGraph()
-    # for _, row in moneyCollection.iterrows():
-    #     G.add_node(row["src"])
-    #     G.add_node(row["destn"])
-    #     G.add_edge(
-    #         row["src"], row["destn"], guarType=row["guarType"], amount=row["amount"],
-    #     )
+    G = nx.DiGraph()
+    for _, row in moneyCollection.iterrows():
+        G.add_node(row["myId"])
+        G.add_node(row["recipId"])
+        G.add_edge(
+            row["myId"],
+            row["recipId"],
+            txnCode=row["txnCode"],
+            txnAmount=row["txnAmount"],
+            txnDateTime=row["txnDateTime"],
+            isLoan=row["isLoan"],
+            status=row["status"],
+            abstract=row["abstract"],
+        )
     # # 切分子图
-    # tmp = nx.to_undirected(G)
+    tmp = nx.to_undirected(G)
     subG = list()
-    # for c in nx.connected_components(tmp):
-    #     subG.append(G.subgraph(c))
-    # # print(len(subG))  # 个子图
-    # # 各个子图的节点数量
-    # nodesNum = dict()
-    # for item in subG:
-    #     if len(item.nodes()) not in nodesNum:
-    #         nodesNum[len(item.nodes())] = 0
-    #     nodesNum[len(item.nodes())] += 1
-    # print(nodesNum)
+    for c in nx.connected_components(tmp):
+        subG.append(G.subgraph(c))
+    # print(len(subG))  # 个子图
+    # 各个子图的节点数量
+    nodesNum = dict()
+    for item in subG:
+        if len(item.nodes()) not in nodesNum:
+            nodesNum[len(item.nodes())] = 0
+        nodesNum[len(item.nodes())] += 1
+    print(nodesNum)
     return subG
 
 
