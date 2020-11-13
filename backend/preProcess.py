@@ -28,8 +28,9 @@ def getInitControlG(path):
     G = nx.DiGraph()
     # 构建初始图G, 控制人共70420个节点
     for _, row in control.iterrows():
-        G.add_node(row["src"], isRoot="0")
-        G.add_node(row["destn"], isRoot="0")
+        # 默认每个节点非根且不存在交叉持股, 具体情况后续判定
+        G.add_node(row["src"], isRoot=0, isCross=0)
+        G.add_node(row["destn"], isRoot=0, isCross=0)
         G.add_edge(
             row["src"],
             row["destn"],
@@ -185,7 +186,7 @@ def getInitmoneyCollectionG(path):
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
-    # print(len(subG))  # 个子图
+    # print(len(subG))  # 15个子图
     # 各个子图的节点数量
     nodesNum = dict()
     for item in subG:
@@ -196,53 +197,76 @@ def getInitmoneyCollectionG(path):
     return subG
 
 
-def getRoot(subG, metric, threshold):
+def getRootOfGuarantee(subG):
     """
-    根据指标获取子图的根节点
+    找到各个节点的实际控制人
+    经检验, 每个子图要么无根, 要么有且仅有一个根, 因此可以简化计算
+    经检验, 有根的子图均不存在交叉持股现象
     Params:
         subG: 原子图的列表
-        metric: 判断的指标
-        threshold: 指标的阈值
     Returns:
-        subG: 更新根节点标记的子图
+        cross: 含有交叉持股关系的子图列表, [(subG, [交叉持股的公司集群])]
+        normal: 无交叉持股关系的子图列表, [subG]
     """
+    cross = list()  # 含有交叉持股关系的子图列表
+    normal = list()  # 无交叉持股关系的子图列表
     # 标记各个子图的根节点
     for G in subG:
-        # 仅含有2个节点的子图
-        if nx.number_of_nodes(G) <= 2:
+        flag = False  # 是否有根标记
+        for n in G.nodes:
+            if G.in_degree(n) == 0:
+                G.nodes[n]["isRoot"] = 1
+                flag = True
+                break  # 仅有一个根, 找到即可退出
+        # 若图无根, 则全图均为交叉持股, 交叉持股的公司风险绑定
+        if not flag:
             for n in G.nodes:
-                if G.in_degree(n) == 0:
-                    G.nodes[n]["isRoot"] = 1
-                    break  # 仅有一个根, 找到即可退出
-        # 含有3个节点的子图
-        if nx.number_of_nodes(G) <= 2:
-            for u, v in G.edges_iter():
-                if G.in_degree(u) == 0 and G[u][v][metric] >= threshold:
-                    G.nodes[n]["isRoot"] = 1  # 可能存在2个根
-                    # print(n, G.nodes[n]["isRoot"])
-        # 含有3个节点以上的子图
-    return subG
-
-
-def getSubgraphFromInitG(G):
-    """
-    输入初始图G, 利用并查集的思想切分子图
-    Param:
-        G: 初始图G, nx.DiGraph()
-    Returns: 
-        GDivided: 存储各个子图的数组, 元素均为nx.DiGraph()
-    """
-    pass
+                G.nodes[n]["isCross"] = 1  # 标记所有公司是交叉持股
+            cross.append((G, [list(G.nodes())]))
+            continue
+        # 仅有一个根, 则该节点必为所有公司的实际控制人
+        # 用拓扑排序判断是否存在局部的交叉持股
+        tmpG = nx.DiGraph(G)  # 必须通过创建新图对象来创建副本, 直接赋值会会被冻结图对象, 无法修改
+        flag = True
+        while flag:
+            flag = False
+            s = list()
+            for n in tmpG.nodes:
+                if tmpG.in_degree(n) == 0:
+                    s.append(n)
+                    flag = True
+            tmpG.remove_nodes_from(s)
+        # 拓扑排序后仍有节点则这些节点构成交叉持股
+        if len(tmpG.nodes()):
+            # 一张子图内可能存在多个交叉持股的公司集群
+            cross.append(
+                (
+                    G,
+                    [
+                        list(tmpG.subgraph(c).nodes())
+                        for c in nx.connected_components(tmpG)
+                    ],
+                )
+            )
+            if len(cross[-1][1]) > 1:
+                print(cross[-1][1])
+        else:
+            # 无交叉持股的子图拓扑排序后为空
+            normal.append(G)
+    return cross, normal
 
 
 if __name__ == "__main__":
-    # controlG = getInitControlG("./backend/res/control.csv")
-    # controlG = getRoot(controlG, "rate", 0.5)
-    # guaranteeG = getInitGuaranteeG("./backend/res/guarantee.csv")
-    moneyCollection = getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
+    controlG = getInitControlG("./backend/res/control.csv")
+    cross, normal = getRootOfGuarantee(controlG)
+    # print(cross, normal)
+    # print(len(cross, len(normal))
+
+    # # guaranteeG = getInitGuaranteeG("./backend/res/guarantee.csv")
+    # # moneyCollection = getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
 
     # nx.draw(
-    #     controlG[5],
+    #     tmp[10],
     #     # pos=nx.spring_layout(G),
     #     with_labels=True,
     #     label_size=1000,
