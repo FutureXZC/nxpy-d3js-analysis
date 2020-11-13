@@ -21,7 +21,6 @@ def getInitControlG(path):
     # 关系类型修正为"0: 投资, 1: 控制"
     control.relType[control.relType == "Control"] = 1
     control.relType[control.relType == "Investment"] = 0
-    # print(control)
 
     # Control关系中，relTag和src一一对应
     G = nx.DiGraph()
@@ -34,7 +33,7 @@ def getInitControlG(path):
             row["src"],
             row["destn"],
             rate=row["rate"],
-            # relTag=row["relTag"],  # 经检验, relTag与边一一对应, 不予考虑
+            relTag=row["relTag"],  # 经检验, relTag与边一一对应, 不予考虑
             relType=row["relType"],
         )
     # 切分子图
@@ -42,13 +41,6 @@ def getInitControlG(path):
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
-    # 各个子图的节点数量
-    # nodesNum = dict()
-    # for item in subG:
-    #     if len(item.nodes()) not in nodesNum:
-    #         nodesNum[len(item.nodes())] = 0
-    #     nodesNum[len(item.nodes())] += 1
-    # print(nodesNum)
     return subG
 
 
@@ -76,11 +68,6 @@ def getRootOfControlG(subG):
             for n in G.nodes:
                 G.nodes[n]["isCross"] = 1  # 标记所有公司是交叉持股
             rootG.append((G, [list(G.nodes())]))
-            # relTag与边一一对应
-            # if not len(set(nx.get_edge_attributes(G, "relTag"))) == len(
-            #     nx.get_edge_attributes(G, "relTag")
-            # ):
-            #     print(1)
             continue
         # 仅有一个根, 则该节点必为所有公司的实际控制人
         # 用拓扑排序判断是否存在局部的交叉持股
@@ -106,8 +93,6 @@ def getRootOfControlG(subG):
                     ],
                 )
             )
-            if len(rootG[-1][1]) > 1:
-                print(rootG[-1][1])
         else:
             # 无交叉持股的子图拓扑排序后为空
             rootG.append((G, []))
