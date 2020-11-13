@@ -7,7 +7,7 @@ import networkx as nx
 def getInitControlG(path):
     """
     读取控制人关系的excel表格到DataFrame, 并切分子图
-    Param:
+    Params:
         path: 含有控制人数据的excel表格
     Returns: 
         subG: 根据表格数据切分得到的子图集合, 每个元素都是一副子图
