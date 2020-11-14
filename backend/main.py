@@ -4,16 +4,16 @@ import moneyCollection
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-    controlG = control.getInitControlG("./backend/res/control.csv")
-    controlRootG = control.getRootOfControlG(controlG)
-    control.graphs2json(
-        controlRootG,
-        "./frontend/res/control_double.json",
-        "./frontend/res/control_multi.json",
-    )
+    # controlG = control.getInitControlG("./backend/res/control.csv")
+    # controlRootG = control.getRootOfControlG(controlG)
+    # control.graphs2json(
+    #     controlRootG,
+    #     "./frontend/res/control_double.json",
+    #     "./frontend/res/control_multi.json",
+    # )
 
-    # guaranteeG = guarantee.getInitGuaranteeG("./backend/res/guarantee.csv")
-    # guarantee.markRiskOfGuaranteeG(guaranteeG)
+    guaranteeG = guarantee.getInitGuaranteeG("./backend/res/guarantee.csv")
+    guarantee.markRiskOfGuaranteeG(guaranteeG)
 
     # moneyCollection = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
 
