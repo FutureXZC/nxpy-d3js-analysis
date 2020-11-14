@@ -85,10 +85,10 @@ def getInitmoneyCollectionG(path):
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
     # 各个子图的节点数量
-    nodesNum = dict()
-    for item in subG:
-        if len(item.nodes()) not in nodesNum:
-            nodesNum[len(item.nodes())] = 0
-        nodesNum[len(item.nodes())] += 1
-    print(nodesNum)
+    # nodesNum = dict()
+    # for item in subG:
+    #     if len(item.nodes()) not in nodesNum:
+    #         nodesNum[len(item.nodes())] = 0
+    #     nodesNum[len(item.nodes())] += 1
+    # print(nodesNum)
     return subG

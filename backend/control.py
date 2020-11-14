@@ -41,6 +41,17 @@ def getInitControlG(path):
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
+    # 各个子图的节点数量
+    # nodesNum = dict()
+    # for item in subG:
+    #     if nx.number_of_nodes(item) not in nodesNum:
+    #         nodesNum[nx.number_of_nodes(item)] = 0
+    #     nodesNum[nx.number_of_nodes(item)] += 1
+    # print(nodesNum)
+    # {2: 30182, 3: 1398, 4: 179, 9: 25, 15: 10, 8: 51, 11: 17, 20: 2, 5: 106,
+    # 118: 1, 41: 1, 7: 87, 6: 158, 10: 23, 17: 3, 26: 2, 12: 12, 21: 8, 14: 14,
+    # 16: 6, 19: 3, 25: 1, 52: 1, 49: 1, 46: 1, 35: 2, 51: 1, 28: 2, 34: 1, 32: 1,
+    # 23: 1, 91: 1, 13: 5, 24: 4, 29: 1, 31: 1, 39: 1, 22: 2, 33: 1, 30: 1}
     return subG
 
 
@@ -123,11 +134,11 @@ def graphs2json(GList, filePath1, filePath2):
                 group, c, size = 2, "normal", 10
             if nx.number_of_nodes(item[0]) == 2:
                 data1["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
                 )
             else:
                 data2["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
                 )
         for u, v in item[0].edges:
             if nx.number_of_nodes(item[0]) == 2:

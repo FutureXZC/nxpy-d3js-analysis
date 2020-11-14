@@ -15,11 +15,11 @@ def getInitGuaranteeG(path):
     guarantee = pd.read_csv(path, encoding="gb2312")
     guarantee.columns = ["src", "destn", "time", "guarType", "amount"]
     # 每个样本的担保时间都相同, 没有分析意义, 直接删除
-    guarantee.drop(["time"], axis=1)
-    # 担保金额为0的样本视为无效的担保, 直接删去
+    guarantee.drop(["time"], axis=1, inplace=True)
+    # 担保金额为0的样本视为无效的担保, 直接删去, 可减少870个样本
     guarantee = guarantee[~guarantee["amount"].isin([0])]
 
-    # 构建初始图G, 一共18711个节点, 14494条边
+    # 构建初始图G, 一共18711个节点, 13478条边
     G = nx.DiGraph()
     for _, row in guarantee.iterrows():
         G.add_node(row["src"], guarType=[])
@@ -39,6 +39,10 @@ def getInitGuaranteeG(path):
     #         nodesNum[nx.number_of_nodes(item)] = 0
     #     nodesNum[nx.number_of_nodes(item)] += 1
     # print(nodesNum)
+    # {2: 6573, 464: 1, 6: 93, 13: 13, 7: 53, 5: 46, 35: 1, 9: 27, 10: 24, 17: 6,
+    # 15: 12, 18: 6, 27: 1, 89: 1, 22: 4, 8: 37, 3: 129, 25: 3, 14: 11, 4: 56, 45: 2,
+    # 20: 6, 31: 2, 23: 1, 19: 3, 93: 2, 26: 5, 29: 2, 41: 1, 11: 12, 12: 8, 21: 2,
+    # 51: 1, 24: 2, 16: 7, 47: 1, 97: 1, 33: 1, 39: 1, 61: 1}
     return subG
 
 
@@ -138,17 +142,74 @@ def markRiskOfGuaranteeG(GList):
                 if "Chain" not in subG.nodes[v]["guarType"]:
                     subG.nodes[v]["guarType"].append("Chain")
 
-    def testDraw(G):
-        """
-        测试绘图
-        """
-        pos = nx.shell_layout(G)
-        nx.draw(G, pos)
-        node_labels = nx.get_node_attributes(G, "guarType")
-        nx.draw_networkx_labels(G, pos, labels=node_labels)
-        # edge_labels = nx.get_edge_attributes(G, "guarType")
-        # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-        plt.show()
+    # def testDraw(G):
+    #     """
+    #     测试绘图
+    #     """
+    #     pos = nx.shell_layout(G)
+    #     nx.draw(G, pos)
+    #     node_labels = nx.get_node_attributes(G, "guarType")
+    #     nx.draw_networkx_labels(G, pos, labels=node_labels)
+    #     # edge_labels = nx.get_edge_attributes(G, "guarType")
+    #     # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    #     plt.show()
 
-    testDraw(cir[5])
+    # testDraw(cir[5])
+    return GList
 
+
+def graphs2json(GList, filePath1, filePath2):
+    """
+    将图数据输出为json文件
+    Params:
+        GList: 图数据
+        filePath1: 双节点子图json的存储路径
+        filePath2: 多节点子图json的存储路径
+    Outputs:
+        输出转化后的json文件到filePath1和filepath2下
+    """
+    data1 = {"links": [], "nodes": []}
+    data2 = {"links": [], "nodes": []}
+    Gid = 0  # 子图编号
+    for item in GList:
+        # 初始化子图数据, 先后加点和边
+        for n in item[0].nodes:
+            if item[0].nodes[n]["isRoot"]:
+                group, c, size = 0, "root", 50
+            elif item[0].nodes[n]["isCross"]:
+                group, c, size = 1, "cross", 30
+            else:
+                group, c, size = 2, "normal", 10
+            if nx.number_of_nodes(item[0]) == 2:
+                data1["nodes"].append(
+                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                )
+            else:
+                data2["nodes"].append(
+                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                )
+        for u, v in item[0].edges:
+            if nx.number_of_nodes(item[0]) == 2:
+                data1["links"].append(
+                    {
+                        "source": u,
+                        "target": v,
+                        "rate": item[0][u][v]["rate"],
+                        "relType": item[0][u][v]["relType"],
+                    }
+                )
+            else:
+                data2["links"].append(
+                    {
+                        "source": u,
+                        "target": v,
+                        "rate": item[0][u][v]["rate"],
+                        "relType": item[0][u][v]["relType"],
+                    }
+                )
+        Gid += 1
+    # 将上述数据写入文件
+    with open(filePath1, "w") as f1:
+        json.dump(data1, f1)
+    with open(filePath2, "w") as f2:
+        json.dump(data2, f2)
