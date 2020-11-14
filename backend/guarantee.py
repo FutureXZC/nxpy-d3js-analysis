@@ -122,9 +122,11 @@ def markRiskOfGuaranteeG(GList):
                 if node in visited:
                     if node in trace:
                         trace_index = trace.index(node)
-                        for i in range(trace_index, len(trace)):
-                            if "Circle" not in subG.nodes[trace[i]]["guarType"]:
-                                subG.nodes[trace[i]]["guarType"].append("Circle")
+                        # 双节点的互保不作为担保圈进行标记
+                        if len(trace) - trace_index > 2:
+                            for i in range(trace_index, len(trace)):
+                                if "Circle" not in subG.nodes[trace[i]]["guarType"]:
+                                    subG.nodes[trace[i]]["guarType"].append("Circle")
                     return
                 visited.append(node)
                 trace.append(node)
@@ -142,19 +144,19 @@ def markRiskOfGuaranteeG(GList):
                 if "Chain" not in subG.nodes[v]["guarType"]:
                     subG.nodes[v]["guarType"].append("Chain")
 
-    # def testDraw(G):
-    #     """
-    #     测试绘图
-    #     """
-    #     pos = nx.shell_layout(G)
-    #     nx.draw(G, pos)
-    #     node_labels = nx.get_node_attributes(G, "guarType")
-    #     nx.draw_networkx_labels(G, pos, labels=node_labels)
-    #     # edge_labels = nx.get_edge_attributes(G, "guarType")
-    #     # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    #     plt.show()
+    def testDraw(G):
+        """
+        测试绘图
+        """
+        pos = nx.shell_layout(G)
+        nx.draw(G, pos)
+        node_labels = nx.get_node_attributes(G, "guarType")
+        nx.draw_networkx_labels(G, pos, labels=node_labels)
+        # edge_labels = nx.get_edge_attributes(G, "guarType")
+        # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+        plt.show()
 
-    # testDraw(cir[5])
+    testDraw(cir[5])
     return GList
 
 
@@ -182,11 +184,11 @@ def graphs2json(GList, filePath1, filePath2):
                 group, c, size = 2, "normal", 10
             if nx.number_of_nodes(item[0]) == 2:
                 data1["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
                 )
             else:
                 data2["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
                 )
         for u, v in item[0].edges:
             if nx.number_of_nodes(item[0]) == 2:
