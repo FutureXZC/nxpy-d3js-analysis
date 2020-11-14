@@ -15,9 +15,9 @@ def getInitControlG(path):
     control = pd.read_csv(path, encoding="gb2312")
     # 将列名索引修改为英文
     control.columns = ["relTag", "src", "destn", "relType", "rate"]
-    # 将比例大于100的异常值修正为100，并归一化
+    # 将比例大于100的异常值修正为100，并将数字变为带百分号的字符串
     control.rate[control.rate >= 100] = 100
-    control["rate"] /= 100
+    control["rate"] = [str(x) + "%" for x in control["rate"]]
     # 关系类型修正为"0: 投资, 1: 控制"
     control.relType[control.relType == "Control"] = 1
     control.relType[control.relType == "Investment"] = 0
@@ -82,7 +82,7 @@ def getRootOfControlG(subG):
                     flag = True
             tmpG.remove_nodes_from(s)
         # 拓扑排序后仍有节点则这些节点构成交叉持股
-        if len(tmpG.nodes()):
+        if nx.number_of_nodes(tmpG):
             # 一张子图内可能存在多个交叉持股的公司集群
             rootG.append(
                 (
@@ -99,44 +99,58 @@ def getRootOfControlG(subG):
     return rootG
 
 
-def graphs2json(GList, filePath):
+def graphs2json(GList, filePath1, filePath2):
     """
     将图数据输出为json文件
     Params:
         GList: 图数据
-        filePath: 要保存的文件名
+        filePath1: 双节点子图json的存储路径
+        filePath2: 多节点子图json的存储路径
     Outputs:
-        输出转化后的json文件到filePath下
+        输出转化后的json文件到filePath1和filepath2下
     """
-    data = dict()
+    data1 = {"links": [], "nodes": []}
+    data2 = {"links": [], "nodes": []}
     Gid = 0  # 子图编号
     for item in GList:
-        # 子图类型, 若为cross则所有节点均为交叉持股
-        if len(item[1]):
-            Gtype = "cross"
-        else:
-            Gtype = "normal"
         # 初始化子图数据, 先后加点和边
-        G = {"type": Gtype, "links": [], "nodes": []}
         for n in item[0].nodes:
-            G["nodes"].append(
-                {
-                    "id": n,
-                    "isRoot": item[0].nodes[n]["isRoot"],
-                    "isCross": item[0].nodes[n]["isCross"],
-                }
-            )
+            if item[0].nodes[n]["isRoot"]:
+                group, c, size = 0, "root", 50
+            elif item[0].nodes[n]["isCross"]:
+                group, c, size = 1, "cross", 30
+            else:
+                group, c, size = 2, "normal", 10
+            if nx.number_of_nodes(item[0]) == 2:
+                data1["nodes"].append(
+                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                )
+            else:
+                data2["nodes"].append(
+                    {"group": group, "class": c, "size": size, "Gid": Gid}
+                )
         for u, v in item[0].edges:
-            G["links"].append(
-                {
-                    "source": u,
-                    "target": v,
-                    "rate": item[0][u][v]["rate"],
-                    "relType": item[0][u][v]["relType"],
-                }
-            )
-        data[str(Gid)] = G
+            if nx.number_of_nodes(item[0]) == 2:
+                data1["links"].append(
+                    {
+                        "source": u,
+                        "target": v,
+                        "rate": item[0][u][v]["rate"],
+                        "relType": item[0][u][v]["relType"],
+                    }
+                )
+            else:
+                data2["links"].append(
+                    {
+                        "source": u,
+                        "target": v,
+                        "rate": item[0][u][v]["rate"],
+                        "relType": item[0][u][v]["relType"],
+                    }
+                )
         Gid += 1
     # 将上述数据写入文件
-    with open(filePath, "w") as f:
-        json.dump(data, f)
+    with open(filePath1, "w") as f1:
+        json.dump(data1, f1)
+    with open(filePath2, "w") as f2:
+        json.dump(data2, f2)
