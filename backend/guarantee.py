@@ -144,19 +144,29 @@ def markRiskOfGuaranteeG(GList):
                 if "Chain" not in subG.nodes[v]["guarType"]:
                     subG.nodes[v]["guarType"].append("Chain")
 
-    def testDraw(G):
-        """
-        测试绘图
-        """
-        pos = nx.shell_layout(G)
-        nx.draw(G, pos)
-        node_labels = nx.get_node_attributes(G, "guarType")
-        nx.draw_networkx_labels(G, pos, labels=node_labels)
-        # edge_labels = nx.get_edge_attributes(G, "guarType")
-        # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-        plt.show()
+    # def testDraw(G):
+    #     """
+    #     测试绘图
+    #     """
+    #     # pos = nx.shell_layout(G)
+    #     # nx.draw(G, pos)
+    #     # node_labels = nx.get_node_attributes(G, "guarType")
+    #     # nx.draw_networkx_labels(G, pos, labels=node_labels)
+    #     # # edge_labels = nx.get_edge_attributes(G, "guarType")
+    #     # # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    #     # plt.show()
+    #     pr = nx.pagerank(G, alpha=0.85)
+    #     print(pr)
+    #     nx.draw(
+    #         G,
+    #         pos=nx.shell_layout(G),
+    #         node_size=[x * 6000 for x in pr.values()],
+    #         node_color="m",
+    #         with_labels=True,
+    #     )
+    #     plt.show()
 
-    testDraw(cir[5])
+    # testDraw(cir[2])
     return GList
 
 
@@ -175,39 +185,30 @@ def graphs2json(GList, filePath1, filePath2):
     Gid = 0  # 子图编号
     for item in GList:
         # 初始化子图数据, 先后加点和边
+        c = list()
         for n in item[0].nodes:
-            if item[0].nodes[n]["isRoot"]:
-                group, c, size = 0, "root", 50
-            elif item[0].nodes[n]["isCross"]:
-                group, c, size = 1, "cross", 30
-            else:
-                group, c, size = 2, "normal", 10
+            if item[0].nodes[n]["guarType"] == "Chain":
+                c.append("Chain")
+            if item[0].nodes[n]["guarType"] == "Mutual":
+                c.append("Mutual")
+            if item[0].nodes[n]["guarType"] == "Circle":
+                c.append("Circle")
+            if item[0].nodes[n]["guarType"] == "Cross":
+                c.append("Cross")
+            if item[0].nodes[n]["guarType"] == "Focus":
+                c.append("Focus")
             if nx.number_of_nodes(item[0]) == 2:
-                data1["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
-                )
+                data1["nodes"].append({"class": c, "Gid": Gid, "id": n})
             else:
-                data2["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
-                )
+                data2["nodes"].append({"class": c, "Gid": Gid, "id": n})
         for u, v in item[0].edges:
             if nx.number_of_nodes(item[0]) == 2:
                 data1["links"].append(
-                    {
-                        "source": u,
-                        "target": v,
-                        "rate": item[0][u][v]["rate"],
-                        "relType": item[0][u][v]["relType"],
-                    }
+                    {"source": u, "target": v, "amount": item[0][u][v]["amount"],}
                 )
             else:
                 data2["links"].append(
-                    {
-                        "source": u,
-                        "target": v,
-                        "rate": item[0][u][v]["rate"],
-                        "relType": item[0][u][v]["relType"],
-                    }
+                    {"source": u, "target": v, "amount": item[0][u][v]["amount"]}
                 )
         Gid += 1
     # 将上述数据写入文件

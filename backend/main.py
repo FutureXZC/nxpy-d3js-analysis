@@ -16,6 +16,11 @@ if __name__ == "__main__":
     # 担保关系表
     guaranteeG = guarantee.getInitGuaranteeG("./backend/res/guarantee.csv")
     guaranteeRiskG = guarantee.markRiskOfGuaranteeG(guaranteeG)
+    # guarantee.graphs2json(
+    #     guaranteeRiskG,
+    #     "./frontend/res/guarantee_double.json",
+    #     "./frontend/res/guarantee_multi.json",
+    # )
 
     # 资金归集表
     # moneyCollection = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
