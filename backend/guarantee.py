@@ -25,10 +25,14 @@ def getInitGuaranteeG(path):
     # 构建初始图G, 一共18711个节点, 13478条边
     G = nx.DiGraph()
     for _, row in guarantee.iterrows():
-        G.add_node(row["src"], guarType=[])
-        G.add_node(row["destn"], guarType=[])
+        G.add_node(row["src"], guarType=[], mOut=0.0, mIn=0.0)
+        G.add_node(row["destn"], guarType=[], mOut=0.0, mIn=0.0)
         G.add_edge(
-            row["src"], row["destn"], guarType=row["guarType"], amount=row["amount"],
+            row["src"],
+            row["destn"],
+            guarType=row["guarType"],
+            amount=row["amount"],
+            mij=0,
         )
     # 切分7158个子图
     tmp = nx.to_undirected(G)
@@ -106,7 +110,7 @@ def markRiskOfGuaranteeG(GList):
         # 拓扑排序后图非空说明含有担保圈或互保关系
         if nx.number_of_nodes(tmpG):
             # 互保判定
-            for u, v in tmpG.edges:
+            for u, v in tmpG.edges():
                 if tmpG.has_edge(v, u):
                     if "Mutual" not in subG.nodes[u]["guarType"]:
                         subG.nodes[u]["guarType"].append("Mutual")
@@ -140,7 +144,7 @@ def markRiskOfGuaranteeG(GList):
             dfs2FindCircle(list(tmpG.nodes())[0])
             cir.append(subG)
         # 担保链: 若节点均不属于上述情况则该节点为担保链上的点
-        for u, v in subG.edges:
+        for u, v in subG.edges():
             if not subG.nodes[u]["guarType"] or not subG.nodes[v]["guarType"]:
                 if "Chain" not in subG.nodes[u]["guarType"]:
                     subG.nodes[u]["guarType"].append("Chain")
@@ -241,6 +245,42 @@ def find_communities(G, T, r=0.05):
     for comm in nestedCommunities:
         del communities[comm]
     return communities
+
+
+def harmonicDistance(subG):
+    """
+    标记节点的风险值m
+    Params:
+        G: 子图列表
+    Outputs:
+        G: 标记各个节点风险值m后的子图列表
+    """
+    for G in subG:
+        # G = nx.reverse(G)
+        m = pd.DataFrame(columns=G.nodes())
+        maxmij = max(nx.get_edge_attributes(G, "amount").values())
+        dis = dict(nx.all_pairs_dijkstra_path_length(G))
+        for i in G.nodes():
+            mij = dict()
+            for j in dis[i]:
+                if i == j:
+                    mij[j] = 0
+                if dis[i][j]:
+                    mij[j] = sum(np.array(list(dis[i].values())) / dis[i][j])
+            for j in G.nodes():
+                if j not in mij:
+                    mij[j] = maxmij
+            m.loc[i] = mij
+        # m矩阵第i行的行和代表了节点i对图中其他节点的风险大小
+        mRowSum = m.apply(lambda x: x.sum(), axis=1)
+        # m矩阵第j列的列和代表了节点j受到图中其他节点的风险大小
+        mColSum = m.apply(lambda x: x.sum())
+        for n in G.nodes():
+            G.nodes[n]["mOut"] = mRowSum[n]
+            G.nodes[n]["mIn"] = mColSum[n]
+        # mij代表节点i对节点j的担保关系紧密程度
+        for u, v in G.edges():
+            G[u][v]["mij"] = m.loc[u, v]
 
 
 def graphs2json(GList, filePath1, filePath2):
