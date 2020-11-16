@@ -1,7 +1,10 @@
+import os
 import json
+import numpy as np
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 
 def getInitGuaranteeG(path):
@@ -168,6 +171,76 @@ def markRiskOfGuaranteeG(GList):
 
     # testDraw(cir[2])
     return GList
+
+
+def find_communities(G, T, r=0.05):
+    """
+    SLPA社区/集群发现算法
+    Params:
+        G: 要进行社区/集群划分的图
+        T: 最大迭代次数
+        r: 默认r值
+    Returns:
+        communities: 记录社区/集群信息的字典列表
+    """
+    # 第一步: 初始化
+    memory = {i: {i: 1} for i in G.nodes()}
+    # 第二步: 递进
+    for _ in range(T):
+        listenersOrder = list(G.nodes())
+        np.random.shuffle(listenersOrder)
+        for listener in listenersOrder:
+            speakers = G[listener].keys()
+            if len(speakers) == 0:
+                continue
+            labels = defaultdict(int)
+            for _, speaker in enumerate(speakers):
+                # Speaker规则
+                total = float(sum(memory[speaker].values()))
+                labels[
+                    list(memory[speaker].keys())[
+                        np.random.multinomial(
+                            1, [freq / total for freq in memory[speaker].values()]
+                        ).argmax()
+                    ]
+                ] += 1
+            # Listener规则
+            acceptedLabel = max(labels, key=labels.get)
+            # 更新listener缓存
+            if acceptedLabel in memory[listener]:
+                memory[listener][acceptedLabel] += 1
+            else:
+                memory[listener][acceptedLabel] = 1
+    # 第三步
+    for node, mem in memory.items():
+        delabel = list()
+        for label, freq in mem.items():
+            if freq / float(T + 1) < r:
+                delabel.append(label)
+        for item in delabel:
+            del mem[item]
+    # 找到节点间的关系
+    communities = {}
+    for node, mem in memory.items():
+        for label in mem.keys():
+            if label in communities:
+                communities[label].add(node)
+            else:
+                communities[label] = set([node])
+    # 移除嵌套社区
+    nestedCommunities = set()
+    keys = list(communities.keys())
+    for i, label0 in enumerate(keys[:-1]):
+        comm0 = communities[label0]
+        for label1 in keys[i + 1 :]:
+            comm1 = communities[label1]
+            if comm0.issubset(comm1):
+                nestedCommunities.add(label0)
+            elif comm0.issuperset(comm1):
+                nestedCommunities.add(label1)
+    for comm in nestedCommunities:
+        del communities[comm]
+    return communities
 
 
 def graphs2json(GList, filePath1, filePath2):
