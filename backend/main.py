@@ -1,7 +1,6 @@
 import control
 import guarantee
 import moneyCollection
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     # 控制人表
@@ -24,5 +23,5 @@ if __name__ == "__main__":
     # )
 
     # 资金归集表
-    moneyCollection = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
-    # moneyCollection.ShellEnterprise()
+    moneyCollectionCut = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
+    shellEnterprise = moneyCollection.findShellEnterprise(moneyCollectionCut)
