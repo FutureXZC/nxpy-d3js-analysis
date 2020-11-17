@@ -67,8 +67,8 @@ def getInitmoneyCollectionG(path):
     # 构建初始图G
     G = nx.DiGraph()
     for _, row in moneyCollection.iterrows():
-        G.add_node(row["myId"])
-        G.add_node(row["recipId"])
+        G.add_node(row["myId"], matchLoan=[], matchTxn=[])
+        G.add_node(row["recipId"], matchLoan=[], matchTxn=[])
         G.add_edge(
             row["myId"],
             row["recipId"],
@@ -85,10 +85,56 @@ def getInitmoneyCollectionG(path):
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
     # 各个子图的节点数量
-    # nodesNum = dict()
-    # for item in subG:
-    #     if len(item.nodes()) not in nodesNum:
-    #         nodesNum[len(item.nodes())] = 0
-    #     nodesNum[len(item.nodes())] += 1
-    # print(nodesNum)
+    nodesNum = dict()
+    for item in subG:
+        if len(item.nodes()) not in nodesNum:
+            nodesNum[len(item.nodes())] = 0
+        nodesNum[len(item.nodes())] += 1
+    print(nodesNum)
     return subG
+
+def pruneMoneyCollection(GList):
+    '''
+    根据题目给定的条件对所有的子图剪枝, 仅保留贷款和交易关系
+    Params:
+        GList: 子图列表
+    Returns:
+        GList: 剪枝后仅剩下贷款和交易的子图列表
+    '''
+    pass
+
+def findShellEnterprise(GList):
+    '''
+    根据资金归集关系找到空壳企业
+    Params:
+        GList: 资金归集子图列表
+    Returns:
+        se: Shell Enterprise, 空壳企业信息列表
+    '''
+    se = list()
+    for subG in GList:
+        flag = False
+        for n in subG.nodes():
+            children = list(subG.neighbors(n))
+            father = list(subG.predecessors(n))
+            for f in father:
+                # 寻找最匹配的贷款和转账
+                bestMatchC, bestMatchRate = "", 0.9
+                for c in children:
+                    # 若入边非贷款出边非转账, 直接跳过
+                    if subG[f][n]["isLoan"] or not subG[n][c]["isLoan"]:
+                        continue
+                    # 日期相差五天, 且金额变化在0.9-1.0范围内
+                    rate = (subG[n][c]["txnAmount"] - subG[f][n]["txnAmount"]) / subG[f][n]["txnAmount"]
+                    if (subG[n][c]["txnDateTime"] - subG[f][n]["txnDateTime"]).days and rate >= bestMatchRate:
+                        bestMatchC, bestMatchRate = c, rate
+                # 如果找到了匹配到的贷款和转账, 则修改节点属性 
+                if bestMatchC:
+                    subG.nodes[n]["matchLoan"].append(f)
+                    subG.nodes[n]["matchTxn"].append(c)
+                    flag = True
+        # 如果该子图存在贷款和转账行为匹配, 则将其记录到se中
+        if flag:
+            se.append(subG)
+    return se
+

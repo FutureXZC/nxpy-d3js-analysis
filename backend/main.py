@@ -14,9 +14,9 @@ if __name__ == "__main__":
     # )
 
     # 担保关系表
-    guaranteeG = guarantee.getInitGuaranteeG("./backend/res/guarantee.csv")
-    guaranteeRiskG = guarantee.markRiskOfGuaranteeG(guaranteeG)
-    guarantee.harmonicDistance(guaranteeRiskG)
+    # guaranteeG = guarantee.getInitGuaranteeG("./backend/res/guarantee.csv")
+    # guaranteeRiskG = guarantee.markRiskOfGuaranteeG(guaranteeG)
+    # guarantee.harmonicDistance(guaranteeRiskG)
     # guarantee.graphs2json(
     #     guaranteeRiskG,
     #     "./frontend/res/guarantee_double.json",
@@ -24,4 +24,5 @@ if __name__ == "__main__":
     # )
 
     # 资金归集表
-    # moneyCollection = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
+    moneyCollection = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
+    # moneyCollection.ShellEnterprise()
