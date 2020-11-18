@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
 import json
 import pandas as pd
+import numpy as np
 import networkx as nx
 
 
@@ -18,23 +20,26 @@ def getInitControlG(path):
     # 将比例大于100的异常值修正为100，并将数字变为带百分号的字符串
     control.rate[control.rate >= 100] = 100
     control["rate"] = [str(x) + "%" for x in control["rate"]]
-    # 关系类型修正为"0: 投资, 1: 控制"
-    control.relType[control.relType == "Control"] = 1
-    control.relType[control.relType == "Investment"] = 0
 
     # Control关系中，relTag和src一一对应
     G = nx.DiGraph()
     # 构建初始图G, 控制人共70420个节点
     for _, row in control.iterrows():
         # 默认每个节点非根且不存在交叉持股, 具体情况后续判定
-        G.add_node(row["src"], isRoot=0, isCross=0)
-        G.add_node(row["destn"], isRoot=0, isCross=0)
+        if row["src"] not in G.nodes():
+            if row["relType"] == "Control":
+                G.add_node(row["src"], isRoot=0, isCross=0, isControl=1)
+            else:
+                G.add_node(row["src"], isRoot=0, isCross=0, isControl=0)
+        elif row["relType"] == "Control":
+            G.nodes[row["src"]]["isControl"] = 1
+        if row["destn"] not in G.nodes():
+            G.add_node(row["destn"], isRoot=0, isCross=0, isControl=0)
         G.add_edge(
             row["src"],
             row["destn"],
             rate=row["rate"],
-            relTag=row["relTag"],  # 经检验, relTag与边一一对应, 不予考虑
-            relType=row["relType"],
+            # relType=row["relType"],
         )
     # 切分子图
     tmp = nx.to_undirected(G)
@@ -48,10 +53,6 @@ def getInitControlG(path):
     #         nodesNum[nx.number_of_nodes(item)] = 0
     #     nodesNum[nx.number_of_nodes(item)] += 1
     # print(nodesNum)
-    # {2: 30182, 3: 1398, 4: 179, 9: 25, 15: 10, 8: 51, 11: 17, 20: 2, 5: 106,
-    # 118: 1, 41: 1, 7: 87, 6: 158, 10: 23, 17: 3, 26: 2, 12: 12, 21: 8, 14: 14,
-    # 16: 6, 19: 3, 25: 1, 52: 1, 49: 1, 46: 1, 35: 2, 51: 1, 28: 2, 34: 1, 32: 1,
-    # 23: 1, 91: 1, 13: 5, 24: 4, 29: 1, 31: 1, 39: 1, 22: 2, 33: 1, 30: 1}
     return subG
 
 
@@ -78,7 +79,7 @@ def getRootOfControlG(subG):
         if not flag:
             for n in G.nodes:
                 G.nodes[n]["isCross"] = 1  # 标记所有公司是交叉持股
-            rootG.append((G, [list(G.nodes())]))
+            rootG.append(G)
             continue
         # 仅有一个根, 则该节点必为所有公司的实际控制人
         # 用拓扑排序判断是否存在局部的交叉持股
@@ -95,73 +96,105 @@ def getRootOfControlG(subG):
         # 拓扑排序后仍有节点则这些节点构成交叉持股
         if nx.number_of_nodes(tmpG):
             # 一张子图内可能存在多个交叉持股的公司集群
-            rootG.append(
-                (
-                    G,
-                    [
-                        list(tmpG.subgraph(c).nodes())
-                        for c in nx.connected_components(tmpG)
-                    ],
-                )
-            )
+            rootG.append(G)
         else:
             # 无交叉持股的子图拓扑排序后为空
-            rootG.append((G, []))
+            rootG.append(G)
     return rootG
 
 
-def graphs2json(GList, filePath1, filePath2):
+def graphs2json(GList):
     """
     将图数据输出为json文件
     Params:
         GList: 图数据
-        filePath1: 双节点子图json的存储路径
-        filePath2: 多节点子图json的存储路径
     Outputs:
-        输出转化后的json文件到filePath1和filepath2下
+        输出转化后的json文件
     """
-    data1 = {"links": [], "nodes": []}
-    data2 = {"links": [], "nodes": []}
+    controlList = {"nodes": [], "links": []}
+    crossList = {"nodes": [], "links": []}
+    doubleCurList = {"nodes": [], "links": []}
+    multiCurList = {"nodes": [], "links": []}
+    tmp = {"nodes": [], "links": []}
+    i, j = 0, 0
     Gid = 0  # 子图编号
+    doubleCount, multiCount = 0, 0
     for item in GList:
+        tmp["nodes"], tmp["links"] = [], []
         # 初始化子图数据, 先后加点和边
-        for n in item[0].nodes:
-            if item[0].nodes[n]["isRoot"]:
-                group, c, size = 0, "root", 50
-            elif item[0].nodes[n]["isCross"]:
-                group, c, size = 1, "cross", 30
+        inControl, inCross = False, False
+        for n in item.nodes:
+            if item.nodes[n]["isControl"]:
+                group, c, size = 0, "control", 5
+                inControl = True
+            elif item.nodes[n]["isCross"]:
+                group, c, size = 1, "cross", 3
+                inCross = True
+            elif item.nodes[n]["isRoot"]:
+                group, c, size = 2, "root", 3
             else:
-                group, c, size = 2, "normal", 10
-            if nx.number_of_nodes(item[0]) == 2:
-                data1["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
-                )
+                group, c, size = 3, "normal", 1
+            tmp["nodes"].append(
+                {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
+            )
+        for u, v in item.edges:
+            tmp["links"].append(
+                {"source": u, "target": v, "rate": item[u][v]["rate"]}
+            )
+        # Control关系json
+        if inControl:
+            controlList["nodes"] += tmp["nodes"]
+            controlList["links"] += tmp["links"]
+        # 交叉持股关系json
+        if inCross:
+            crossList["nodes"] += tmp["nodes"]
+            crossList["links"] += tmp["links"]
+        # 其他双节点json
+        if len(tmp["nodes"]) == 2:
+            doubleCount += 2
+            # 每个json存储的点不超过3000个
+            if doubleCount >= 3000:
+                # doubleList.append(doubleCurList)
+                path = "./frontend/res/control/" + "double_" + str(i) + ".json"
+                with open(path, "w") as f:
+                    json.dump(doubleCurList, f)
+                i += 1
+                doubleCount = 0
+                doubleCurList["nodes"], doubleCurList["links"] = [], []
             else:
-                data2["nodes"].append(
-                    {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
-                )
-        for u, v in item[0].edges:
-            if nx.number_of_nodes(item[0]) == 2:
-                data1["links"].append(
-                    {
-                        "source": u,
-                        "target": v,
-                        "rate": item[0][u][v]["rate"],
-                        "relType": item[0][u][v]["relType"],
-                    }
-                )
+                doubleCurList["nodes"] += tmp["nodes"]
+                doubleCurList["links"] += tmp["links"]
+        # 其他多节点json
+        else:
+            multiCount += len(tmp["nodes"])
+            # 每个json存储的点以2950个为阈值
+            if multiCount >= 2950:
+                path = "./frontend/res/control/" + "multi_" + str(j) + ".json"
+                with open(path, "w") as f:
+                    json.dump(multiCurList, f)
+                j += 1
+                multiCount = 0
+                multiCurList["nodes"], multiCurList["links"] = [], []
             else:
-                data2["links"].append(
-                    {
-                        "source": u,
-                        "target": v,
-                        "rate": item[0][u][v]["rate"],
-                        "relType": item[0][u][v]["relType"],
-                    }
-                )
+                multiCurList["nodes"] += tmp["nodes"]
+                multiCurList["links"] += tmp["links"]
         Gid += 1
+    if len(tmp["nodes"]) == 2:
+        doubleCurList["nodes"] += tmp["nodes"]
+        doubleCurList["links"] += tmp["links"]
+    else:
+        multiCurList["nodes"] += tmp["nodes"]
+        multiCurList["links"] += tmp["links"]
+    if doubleCurList:
+        path = "./frontend/res/control/" + "double_" + str(i) + ".json"
+        with open(path, "w") as f:
+            json.dump(doubleCurList, f)
+    if multiCurList:
+        path = "./frontend/res/control/" + "multi_" + str(j) + ".json"
+        with open(path, "w") as f:
+            json.dump(multiCurList, f)
     # 将上述数据写入文件
-    with open(filePath1, "w") as f1:
-        json.dump(data1, f1)
-    with open(filePath2, "w") as f2:
-        json.dump(data2, f2)
+    with open(r"./frontend/res/control/control.json", "w") as f:
+        json.dump(controlList, f)
+    with open(r"./frontend/res/control/cross.json", "w") as f:
+        json.dump(crossList, f)
