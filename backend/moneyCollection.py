@@ -1,13 +1,12 @@
 import re
 import json
-# import math
+
 import csv
 import datetime
 import numpy as np
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
-# import openpyxl
 
 
 def getInitmoneyCollectionG(path):
@@ -39,12 +38,11 @@ def getInitmoneyCollectionG(path):
     tag = {
         "myId": 0,  # 本人账户
         "recipId": 29,  # 对方账户
-        "jioyrq": 1,  # 交易日期
-        "jioysj": 3,  # 交易时间
+        "txnDateTime": 1,  # 交易日期
         "txnCode": 4,  # 交易码
         "txnAmount": 7,  # 交易金额
         "isLoan": 6,  # 借贷标志
-        "status": -1,  # 状态码
+        "status": 33,  # 状态码
         "abstract": 21  # 摘要
     }
     moneyCollection = list()
@@ -60,32 +58,27 @@ def getInitmoneyCollectionG(path):
         if line[tag["isLoan"]] == loan["isLoan"] and line[tag["txnCode"]] in loan["code"]:
             pass
         # 转账条件筛选
-        elif line[tag["isLoan"]] == txn["isLoan"] and line[tag["status"]] == txn["status"] and line[tag["txnCode"]] in txn["code"]:
-            flag = False
-            for item in txn["abstract"]:
-                if re.search(item, line[tag["abstract"]]):
-                    flag = True
-                    break
-            if flag:
-                continue
+        elif not line[tag["status"]] == "R":
+            if line[tag["txnCode"]] in txn["code"] and int(line[tag["isLoan"]]) == int(txn["isLoan"]) and int(line[tag["status"]]) == int(txn["status"]):
+                flag = False
+                for item in txn["abstract"]:
+                    if re.search(item, line[tag["abstract"]]):
+                        flag = True
+                        break
+                if flag:
+                    continue                
         else:
             continue
-        ## 日期格式处理
-        # 将时间处理为datetime格式，便于后期计算
-        txnDate = line[tag["jioyrq"]][0:4] + "-" + line[tag["jioyrq"]][4:6] + "-" + line[tag["jioyrq"]][6:8]
-        x = int(line[tag["jioysj"]])
-        txnTime = str(x // 10000) + ":" + str(x % 10000 // 100) + ":" + str(x % 100)
-        txnDateTime = datetime.datetime.strptime(txnDate + " " + txnTime, "%Y-%m-%d %H:%M:%S")
+
         moneyCollection.append({
             "myId": line[tag["myId"]],
             "recipId": line[tag["recipId"]],
-            "txnDateTime": txnDateTime,
-            "txnAmount": line[tag["txnAmount"]],
-            "isLoan": line[tag["isLoan"]],
-            "abstract": line[tag["abstract"]]
+            "txnDateTime": int(line[tag["txnDateTime"]]),
+            "txnAmount": float(line[tag["txnAmount"]]),
+            "isLoan": int(line[tag["isLoan"]]),
         })
 
-    ## 构建初始图G, 17368条边
+    ## 构建初始图G
     G = nx.DiGraph()
     for row in moneyCollection:
         if row["myId"] not in G.nodes():
@@ -98,21 +91,26 @@ def getInitmoneyCollectionG(path):
             txnAmount=row["txnAmount"],
             txnDateTime=row["txnDateTime"],
             isLoan=row["isLoan"],
-            abstract=row["abstract"],
         )
-    # 切分67个子图
+    # 切分子图
     tmp = nx.to_undirected(G)
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
     # 各个子图的节点数量
-    nodesNum = dict()
-    for item in subG:
-        if len(item.nodes()) not in nodesNum:
-            nodesNum[len(item.nodes())] = 0
-        nodesNum[len(item.nodes())] += 1
-    print(nodesNum)
-    print(sum(nodesNum.values()))
+    # nodesNum = dict()
+    # edgesNum = dict()
+    # for item in subG:
+    #     if len(item.nodes()) not in nodesNum:
+    #         nodesNum[len(item.nodes())] = 0
+    #     nodesNum[len(item.nodes())] += 1
+    #     if item.size() not in edgesNum:
+    #         edgesNum[item.size()] = 0
+    #     edgesNum[item.size()] += 1
+    # print(nodesNum)
+    # print(sum(nodesNum.keys()))
+    # print(edgesNum)
+    # print(sum(edgesNum.keys()))
     return subG
 
 def findShellEnterprise(GList):
@@ -121,45 +119,52 @@ def findShellEnterprise(GList):
     Params:
         GList: 资金归集子图列表
     Returns:
-        se: Shell Enterprise, 空壳企业信息列表
+        se: 空壳企业信息图
     '''
-    se = list()
-    count = 0
+    se = nx.DiGraph()
     for subG in GList:
-        flag = False
         for n in subG.nodes():
             children = list(subG.neighbors(n))
             father = list(subG.predecessors(n))
-            # print(children, father)
-            if len(children) == 0 or len(father) == 0:
+            if not father or not children:
                 continue
-            count += 1
             for f in father:
                 # 寻找最匹配的贷款和转账
-                bestMatchC, bestMatchRate = "", 0.9
+                bestMatchF, bestMatchRate, bestMatchC = "", 0.9, ""
                 for c in children:
                     # 若入边非贷款出边非转账, 直接跳过
-                    if not subG[f][n]["isLoan"] or subG[n][c]["isLoan"]:
+                    if subG[f][n]["isLoan"] == 1 or subG[n][c]["isLoan"] == 0:
                         continue
                     # 日期相差五天, 且金额变化在0.9-1.0范围内
-                    rate = (subG[n][c]["txnAmount"] - subG[f][n]["txnAmount"]) / subG[f][n]["txnAmount"]
-                    if (subG[n][c]["txnDateTime"] - subG[f][n]["txnDateTime"]).days < 5 and rate >= bestMatchRate:
-                        bestMatchC, bestMatchRate = c, rate
-                # 如果找到了匹配到的贷款和转账, 则修改节点属性 
+                    rate = subG[n][c]["txnAmount"] / subG[f][n]["txnAmount"]
+                    if subG[n][c]["txnDateTime"] - subG[f][n]["txnDateTime"] <= 5 and rate >= bestMatchRate and rate <= 1:
+                        bestMatchC, bestMatchRate, bestMatchF = c, rate, f
+                # 如果找到了匹配到的贷款和转账, 则修改节点属性, 将其记录到se中
                 if bestMatchC:
-                    subG.nodes[n]["matchLoan"] = f
-                    subG.nodes[n]["matchTxn"] = c
-                    flag = True
-        # 如果该子图存在贷款和转账行为匹配, 则将其记录到se中
-        if flag:
-            se.append(subG)
-    # 各个子图的节点数量
-    nodesNum = dict()
-    for item in se:
-        if len(item.nodes()) not in nodesNum:
-            nodesNum[len(item.nodes())] = 0
-        nodesNum[len(item.nodes())] += 1
-    print(nodesNum)
-    print(count)
+                    # print(bestMatchF, n, bestMatchC, bestMatchRate)
+                    subG.nodes[n]["matchLoan"] = bestMatchF
+                    subG.nodes[n]["matchTxn"] = bestMatchC
+                    se.add_edge(
+                        bestMatchF, n,
+                        txnAmount=subG[f][n]["txnAmount"]
+                    )
+                    se.add_edge(
+                        n, bestMatchC,
+                        txnAmount=subG[n][c]["txnAmount"]
+                    )
+    def testDraw(G):
+        """
+        测试绘图
+        """
+        pos = nx.shell_layout(G)
+        nx.draw(G, pos)
+        node_labels = nx.get_node_attributes(G, "guarType")
+        nx.draw_networkx_labels(G, pos)
+        # edge_labels = nx.get_edge_attributes(G, "guarType")
+        nx.draw_networkx_edge_labels(G, pos)
+        plt.show()
+
+    testDraw(se)
+    print(se.size())
     return se
 
