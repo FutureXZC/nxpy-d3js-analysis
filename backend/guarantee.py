@@ -25,8 +25,8 @@ def getInitGuaranteeG(path):
     # 构建初始图G, 一共18711个节点, 13478条边
     G = nx.DiGraph()
     for _, row in guarantee.iterrows():
-        G.add_node(row["src"], guarType=[], mOut=0.0, mIn=0.0)
-        G.add_node(row["destn"], guarType=[], mOut=0.0, mIn=0.0)
+        G.add_node(row["src"], guarType=[], m=0.0, std=0.0)
+        G.add_node(row["destn"], guarType=[], m=0.0, std=0.0)
         G.add_edge(
             row["src"],
             row["destn"],
@@ -39,13 +39,6 @@ def getInitGuaranteeG(path):
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
-    # 各个子图的节点数量
-    # nodesNum = dict()
-    # for item in subG:
-    #     if nx.number_of_nodes(item) not in nodesNum:
-    #         nodesNum[nx.number_of_nodes(item)] = 0
-    #     nodesNum[nx.number_of_nodes(item)] += 1
-    # print(nodesNum)
     return subG
 
 
@@ -146,30 +139,6 @@ def markRiskOfGuaranteeG(GList):
                     subG.nodes[u]["guarType"].append("Chain")
                 if "Chain" not in subG.nodes[v]["guarType"]:
                     subG.nodes[v]["guarType"].append("Chain")
-
-    # def testDraw(G):
-    #     """
-    #     测试绘图
-    #     """
-    #     # pos = nx.shell_layout(G)
-    #     # nx.draw(G, pos)
-    #     # node_labels = nx.get_node_attributes(G, "guarType")
-    #     # nx.draw_networkx_labels(G, pos, labels=node_labels)
-    #     # # edge_labels = nx.get_edge_attributes(G, "guarType")
-    #     # # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    #     # plt.show()
-    #     pr = nx.pagerank(G, alpha=0.85)
-    #     print(pr)
-    #     nx.draw(
-    #         G,
-    #         pos=nx.shell_layout(G),
-    #         node_size=[x * 6000 for x in pr.values()],
-    #         node_color="m",
-    #         with_labels=True,
-    #     )
-    #     plt.show()
-
-    # testDraw(cir[2])
     return GList
 
 
@@ -272,11 +241,21 @@ def harmonicDistance(subG):
         # m矩阵第j列的列和代表了节点j受到图中其他节点的风险大小
         # mColSum = m.apply(lambda x: x.sum())
         for n in G.nodes():
-            G.nodes[n]["mOut"] = mRowSum[n]
+            G.nodes[n]["m"] = mRowSum[n]
             # G.nodes[n]["mIn"] = mColSum[n]
         # mij代表节点i对节点j的担保关系紧密程度
         for u, v in G.edges():
             G[u][v]["mij"] = m.loc[u, v]
+        mList = nx.get_node_attributes(G, 'm')
+        maxM, minM = max(mList.values()), min(mList.values())
+        if maxM == minM:
+            for n in G.nodes():
+                G.nodes[n]["std"] = 15
+        else:
+            k = 20/(maxM - minM)
+            for n in G.nodes():
+                G.nodes[n]["std"] = 5 + k * (G.nodes[n]["m"] - minM)
+
 
 
 def graphs2json(GList):
@@ -296,19 +275,25 @@ def graphs2json(GList):
     Gid = 0  # 子图编号
     doubleCount = 0
     i = 0
+    c = ["singleRisk", "doubleRisk", "tripleRisk", "quadraRisk", "pentaRisk"]
     for item in GList:
         # 初始化子图数据, 先后加点和边
         isMutual, isCircle, isCross, isFocus, isUnusual = False, False, False, False, False
         for n in item.nodes:
+            riskCount = 0
             if "Mutual" in item.nodes[n]["guarType"]:
                 isMutual, isUnusual = True, True
+                riskCount += 1
             if "Circle" in item.nodes[n]["guarType"]:
                 isCircle, isUnusual = True, True
+                riskCount += 1
             if "Cross" in item.nodes[n]["guarType"]:
                 isCross, isUnusual = True, True
+                riskCount += 1
             if "Focus" in item.nodes[n]["guarType"]:
                 isFocus, isUnusual = True, True
-            tmpNode = {"class": item.nodes[n]["guarType"], "Gid": Gid, "id": n, "mOut": item.nodes[n]["mOut"]}
+                riskCount += 1
+            tmpNode = {"group": riskCount, "class": c[riskCount], "size": item.nodes[n]["std"], "ctx": item.nodes[n]["guarType"], "Gid": Gid, "id": n, "m": item.nodes[n]["m"]}
             if isUnusual:
                 if isCircle:
                     circleList["nodes"].append(tmpNode)

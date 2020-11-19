@@ -46,13 +46,6 @@ def getInitControlG(path):
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
-    # 各个子图的节点数量
-    # nodesNum = dict()
-    # for item in subG:
-    #     if nx.number_of_nodes(item) not in nodesNum:
-    #         nodesNum[nx.number_of_nodes(item)] = 0
-    #     nodesNum[nx.number_of_nodes(item)] += 1
-    # print(nodesNum)
     return subG
 
 
