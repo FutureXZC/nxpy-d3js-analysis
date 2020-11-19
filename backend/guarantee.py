@@ -275,25 +275,36 @@ def graphs2json(GList):
     Gid = 0  # 子图编号
     doubleCount = 0
     i = 0
-    c = ["singleRisk", "doubleRisk", "tripleRisk", "quadraRisk", "pentaRisk"]
+    c = ["doubleRisk", "tripleRisk", "quadraRisk", "pentaRisk"]
+    single = ["circle", "mutual", "cross", "focus", "chain"]
     for item in GList:
         # 初始化子图数据, 先后加点和边
         isMutual, isCircle, isCross, isFocus, isUnusual = False, False, False, False, False
+        offset = 0
         for n in item.nodes:
-            riskCount = 0
+            riskCount = len(item.nodes[n]["guarType"]) - 1
             if "Mutual" in item.nodes[n]["guarType"]:
                 isMutual, isUnusual = True, True
-                riskCount += 1
-            if "Circle" in item.nodes[n]["guarType"]:
+                if riskCount == 0:
+                    offset = 1
+            elif "Circle" in item.nodes[n]["guarType"]:
                 isCircle, isUnusual = True, True
-                riskCount += 1
-            if "Cross" in item.nodes[n]["guarType"]:
+                if riskCount == 0:
+                    offset = 0
+            elif "Cross" in item.nodes[n]["guarType"]:
                 isCross, isUnusual = True, True
-                riskCount += 1
-            if "Focus" in item.nodes[n]["guarType"]:
+                if riskCount == 0:
+                    offset = 2
+            elif "Focus" in item.nodes[n]["guarType"]:
                 isFocus, isUnusual = True, True
-                riskCount += 1
-            tmpNode = {"group": riskCount, "class": c[riskCount], "size": item.nodes[n]["std"], "ctx": item.nodes[n]["guarType"], "Gid": Gid, "id": n, "m": item.nodes[n]["m"]}
+                if riskCount == 0:
+                    offset = 3
+            else:
+                offset = 4
+            if riskCount > 0:
+                tmpNode = {"group": riskCount, "class": c[riskCount-1], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]}
+            else:
+                tmpNode = {"group": riskCount, "class": single[offset], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]}
             if isUnusual:
                 if isCircle:
                     circleList["nodes"].append(tmpNode)
