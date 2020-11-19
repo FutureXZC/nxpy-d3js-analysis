@@ -289,7 +289,7 @@ def graphs2json(GList):
     """
     circleList = {"links": [], "nodes": []}
     MutualList = {"links": [], "nodes": []}
-    corssList = {"links": [], "nodes": []}
+    crossList = {"links": [], "nodes": []}
     focusList = {"links": [], "nodes": []}
     doubleNormalList = {"links": [], "nodes": []}
     multiNormalList = {"links": [], "nodes": []}
@@ -315,7 +315,7 @@ def graphs2json(GList):
                 if isMutual:
                     MutualList["nodes"].append(tmpNode)
                 if isCross:
-                    corssList["nodes"].append(tmpNode)
+                    crossList["nodes"].append(tmpNode)
                 if isFocus:
                     focusList["nodes"].append(tmpNode)
             else:
@@ -339,7 +339,7 @@ def graphs2json(GList):
                 if isMutual:
                     MutualList["links"].append(tmpLink)
                 if isCross:
-                    corssList["links"].append(tmpLink)
+                    crossList["links"].append(tmpLink)
                 if isFocus:
                     focusList["links"].append(tmpLink)
             else:
@@ -350,7 +350,7 @@ def graphs2json(GList):
         Gid += 1
     print("circleList", len(circleList["nodes"]))
     print("MutualList", len(MutualList["nodes"]))
-    print("corssList", len(corssList["nodes"]))
+    print("crossList", len(crossList["nodes"]))
     print("focusList", len(focusList["nodes"]))
     print("doubleNormalList", len(doubleNormalList["nodes"]))
     print("multiNormalList", len(multiNormalList["nodes"]))
@@ -359,8 +359,8 @@ def graphs2json(GList):
         json.dump(circleList, f)
     with open(r"./frontend/res/guarantee/mutual.json", "w") as f:
         json.dump(MutualList, f)
-    with open(r"./frontend/res/guarantee/corss.json", "w") as f:
-        json.dump(corssList, f)
+    with open(r"./frontend/res/guarantee/cross.json", "w") as f:
+        json.dump(crossList, f)
     with open(r"./frontend/res/guarantee/focus.json", "w") as f:
         json.dump(focusList, f)
     # with open(r"./frontend/res/guarantee/doubleNormal.json", "w") as f:
