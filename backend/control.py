@@ -77,7 +77,7 @@ def getRootOfControlG(subG):
                 break  # 仅有一个根, 找到即可退出
         # 若图无根, 则将图逆置后仍无法拓扑排序的公司均为交叉持股, 交叉持股的公司风险绑定
         if not flag:
-            tmpG = nx.DiGraph(G)
+            tmpG = nx.reverse(G)
             flag = True
             while flag:
                 flag = False
