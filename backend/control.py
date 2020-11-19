@@ -64,7 +64,7 @@ def getRootOfControlG(subG):
     Params:
         subG: 原子图的列表
     Returns:
-        rootG: 含有交叉持股关系的子图列表, [(subG, [交叉持股的公司集群])]
+        rootG: 含有交叉持股关系的子图
     """
     rootG = list()
     # 标记各个子图的根节点
@@ -75,10 +75,21 @@ def getRootOfControlG(subG):
                 G.nodes[n]["isRoot"] = 1
                 flag = True
                 break  # 仅有一个根, 找到即可退出
-        # 若图无根, 则全图均为交叉持股, 交叉持股的公司风险绑定
+        # 若图无根, 则将图逆置后仍无法拓扑排序的公司均为交叉持股, 交叉持股的公司风险绑定
         if not flag:
-            for n in G.nodes:
-                G.nodes[n]["isCross"] = 1  # 标记所有公司是交叉持股
+            tmpG = nx.DiGraph(G)
+            flag = True
+            while flag:
+                flag = False
+                s = list()
+                for n in tmpG.nodes:
+                    if tmpG.in_degree(n) == 0:
+                        s.append(n)
+                        flag = True
+                tmpG.remove_nodes_from(s)
+            # 拓扑排序后仍有节点则这些节点构成交叉持股
+            for n in tmpG.nodes:
+                G.nodes[n]["isCross"] = 1  # 标记无法拓扑排序的公司是交叉持股
             rootG.append(G)
             continue
         # 仅有一个根, 则该节点必为所有公司的实际控制人
