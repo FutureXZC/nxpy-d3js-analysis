@@ -1,6 +1,5 @@
 import re
 import json
-
 import csv
 import datetime
 import numpy as np
@@ -92,6 +91,7 @@ def getInitmoneyCollectionG(path):
             txnDateTime=row["txnDateTime"],
             isLoan=row["isLoan"],
         )
+    # print(G.size())
     # 切分子图
     tmp = nx.to_undirected(G)
     subG = list()
@@ -141,7 +141,7 @@ def findShellEnterprise(GList):
                         bestMatchC, bestMatchRate, bestMatchF = c, rate, f
                 # 如果找到了匹配到的贷款和转账, 则修改节点属性, 将其记录到se中
                 if bestMatchC:
-                    # print(bestMatchF, n, bestMatchC, bestMatchRate)
+                    print(bestMatchF, n, bestMatchC, bestMatchRate)
                     subG.nodes[n]["matchLoan"] = bestMatchF
                     subG.nodes[n]["matchTxn"] = bestMatchC
                     se.add_edge(
@@ -158,13 +158,13 @@ def findShellEnterprise(GList):
         """
         pos = nx.shell_layout(G)
         nx.draw(G, pos)
-        node_labels = nx.get_node_attributes(G, "guarType")
+        # node_labels = nx.get_node_attributes(G, "guarType")
         nx.draw_networkx_labels(G, pos)
         # edge_labels = nx.get_edge_attributes(G, "guarType")
         nx.draw_networkx_edge_labels(G, pos)
         plt.show()
 
-    testDraw(se)
-    print(se.size())
+    # testDraw(se)
+    # print(se.size())
     return se
 
