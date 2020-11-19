@@ -46,10 +46,6 @@ def getInitGuaranteeG(path):
     #         nodesNum[nx.number_of_nodes(item)] = 0
     #     nodesNum[nx.number_of_nodes(item)] += 1
     # print(nodesNum)
-    # {2: 6573, 464: 1, 6: 93, 13: 13, 7: 53, 5: 46, 35: 1, 9: 27, 10: 24, 17: 6,
-    # 15: 12, 18: 6, 27: 1, 89: 1, 22: 4, 8: 37, 3: 129, 25: 3, 14: 11, 4: 56, 45: 2,
-    # 20: 6, 31: 2, 23: 1, 19: 3, 93: 2, 26: 5, 29: 2, 41: 1, 11: 12, 12: 8, 21: 2,
-    # 51: 1, 24: 2, 16: 7, 47: 1, 97: 1, 33: 1, 39: 1, 61: 1}
     return subG
 
 
@@ -274,58 +270,100 @@ def harmonicDistance(subG):
         # m矩阵第i行的行和代表了节点i对图中其他节点的风险大小
         mRowSum = m.apply(lambda x: x.sum(), axis=1)
         # m矩阵第j列的列和代表了节点j受到图中其他节点的风险大小
-        mColSum = m.apply(lambda x: x.sum())
+        # mColSum = m.apply(lambda x: x.sum())
         for n in G.nodes():
             G.nodes[n]["mOut"] = mRowSum[n]
-            G.nodes[n]["mIn"] = mColSum[n]
+            # G.nodes[n]["mIn"] = mColSum[n]
         # mij代表节点i对节点j的担保关系紧密程度
         for u, v in G.edges():
             G[u][v]["mij"] = m.loc[u, v]
 
 
-def graphs2json(GList, filePath1, filePath2):
+def graphs2json(GList):
     """
     将图数据输出为json文件
     Params:
         GList: 图数据
-        filePath1: 双节点子图json的存储路径
-        filePath2: 多节点子图json的存储路径
     Outputs:
         输出转化后的json文件到filePath1和filepath2下
     """
-    data1 = {"links": [], "nodes": []}
-    data2 = {"links": [], "nodes": []}
+    circleList = {"links": [], "nodes": []}
+    MutualList = {"links": [], "nodes": []}
+    corssList = {"links": [], "nodes": []}
+    focusList = {"links": [], "nodes": []}
+    doubleNormalList = {"links": [], "nodes": []}
+    multiNormalList = {"links": [], "nodes": []}
     Gid = 0  # 子图编号
+    doubleCount = 0
+    i = 0
     for item in GList:
         # 初始化子图数据, 先后加点和边
-        c = list()
-        for n in item[0].nodes:
-            if item[0].nodes[n]["guarType"] == "Chain":
-                c.append("Chain")
-            if item[0].nodes[n]["guarType"] == "Mutual":
-                c.append("Mutual")
-            if item[0].nodes[n]["guarType"] == "Circle":
-                c.append("Circle")
-            if item[0].nodes[n]["guarType"] == "Cross":
-                c.append("Cross")
-            if item[0].nodes[n]["guarType"] == "Focus":
-                c.append("Focus")
-            if nx.number_of_nodes(item[0]) == 2:
-                data1["nodes"].append({"class": c, "Gid": Gid, "id": n})
+        isMutual, isCircle, isCross, isFocus, isUnusual = False, False, False, False, False
+        for n in item.nodes:
+            if "Mutual" in item.nodes[n]["guarType"]:
+                isMutual, isUnusual = True, True
+            if "Circle" in item.nodes[n]["guarType"]:
+                isCircle, isUnusual = True, True
+            if "Cross" in item.nodes[n]["guarType"]:
+                isCross, isUnusual = True, True
+            if "Focus" in item.nodes[n]["guarType"]:
+                isFocus, isUnusual = True, True
+            tmpNode = {"class": item.nodes[n]["guarType"], "Gid": Gid, "id": n, "mOut": item.nodes[n]["mOut"]}
+            if isUnusual:
+                if isCircle:
+                    circleList["nodes"].append(tmpNode)
+                if isMutual:
+                    MutualList["nodes"].append(tmpNode)
+                if isCross:
+                    corssList["nodes"].append(tmpNode)
+                if isFocus:
+                    focusList["nodes"].append(tmpNode)
             else:
-                data2["nodes"].append({"class": c, "Gid": Gid, "id": n})
-        for u, v in item[0].edges:
-            if nx.number_of_nodes(item[0]) == 2:
-                data1["links"].append(
-                    {"source": u, "target": v, "amount": item[0][u][v]["amount"],}
-                )
+                if nx.number_of_nodes(item) == 2:
+                    doubleCount += 2
+                    if doubleCount < 2950:
+                        doubleNormalList["nodes"].append(tmpNode)
+                    else:
+                        with open("./frontend/res/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
+                            json.dump(doubleNormalList, f)
+                        i += 1
+                        doubleCount = 0
+                        doubleNormalList = {"links": [], "nodes": []}
+                else:
+                    multiNormalList["nodes"].append(tmpNode)
+        for u, v in item.edges:
+            tmpLink = {"source": u, "target": v, "amount": item[u][v]["amount"], "Gid": Gid}
+            if isUnusual:
+                if isCircle:
+                    circleList["links"].append(tmpLink)
+                if isMutual:
+                    MutualList["links"].append(tmpLink)
+                if isCross:
+                    corssList["links"].append(tmpLink)
+                if isFocus:
+                    focusList["links"].append(tmpLink)
             else:
-                data2["links"].append(
-                    {"source": u, "target": v, "amount": item[0][u][v]["amount"]}
-                )
+                if nx.number_of_nodes(item) == 2:
+                    doubleNormalList["links"].append(tmpLink)
+                else:
+                    multiNormalList["links"].append(tmpLink)
         Gid += 1
+    print("circleList", len(circleList["nodes"]))
+    print("MutualList", len(MutualList["nodes"]))
+    print("corssList", len(corssList["nodes"]))
+    print("focusList", len(focusList["nodes"]))
+    print("doubleNormalList", len(doubleNormalList["nodes"]))
+    print("multiNormalList", len(multiNormalList["nodes"]))
     # 将上述数据写入文件
-    with open(filePath1, "w") as f1:
-        json.dump(data1, f1)
-    with open(filePath2, "w") as f2:
-        json.dump(data2, f2)
+    with open(r"./frontend/res/guarantee/circle.json", "w") as f:
+        json.dump(circleList, f)
+    with open(r"./frontend/res/guarantee/mutual.json", "w") as f:
+        json.dump(MutualList, f)
+    with open(r"./frontend/res/guarantee/corss.json", "w") as f:
+        json.dump(corssList, f)
+    with open(r"./frontend/res/guarantee/focus.json", "w") as f:
+        json.dump(focusList, f)
+    # with open(r"./frontend/res/guarantee/doubleNormal.json", "w") as f:
+    #     json.dump(doubleNormalList, f)
+    with open(r"./frontend/res/guarantee/multiNormal.json", "w") as f:
+        json.dump(multiNormalList, f)
