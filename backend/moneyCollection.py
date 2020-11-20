@@ -106,7 +106,7 @@ def findShellEnterprise(GList):
         seNodes: 中间企业列表
     '''
     se = nx.MultiDiGraph()
-    seNodes = list()
+    seNodes = [[] for i in range(3)]
     for subG in GList:
         for n in subG.nodes():
             children = list(subG.neighbors(n))
@@ -135,23 +135,113 @@ def findShellEnterprise(GList):
                                 bestMatchDate = (subG[f][n][k1]["txnDateTime"], subG[n][c][k2]["txnDateTime"])
                         # 如果找到了匹配到的贷款和转账, 则修改节点属性, 将其记录到se中
                     if bestMatchC:
-                        print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC)
-                        print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
-                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, date=bestMatchDate[0])
-                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, date=bestMatchDate[1])
-                        seNodes.append(n)
+                        # print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC)
+                        # print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
+                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, txnDateTime=bestMatchDate[0])
+                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, txnDateTime=bestMatchDate[1])
+                        seNodes[0].append(bestMatchF)
+                        seNodes[1].append(n)
+                        seNodes[2].append(bestMatchC)
     if (nx.number_of_nodes(se)):
         print(se.size(), nx.number_of_nodes(se))
-        seNodes = list(set(seNodes))
-        print("具有资金归集行为的中间企业数量为：", len(seNodes))
-        print("资金归集的中间企业列表：", seNodes)
+        seNodes = [list(set(seNodes[i])) for i in range(3)]
+        print("具有资金归集行为的提供贷款企业数量为：", len(seNodes[0]))
+        print("具有资金归集行为的中间企业数量为：", len(seNodes[1]))
+        print("具有资金归集行为的接收转账企业数量为：", len(seNodes[2]))
+        print("资金归集的中间企业列表：", seNodes[1])
+
+    # def testDraw(G):
+    #     """
+    #     测试绘图
+    #     """
+    #     pos = nx.shell_layout(G)
+    #     nx.draw(G, pos)
+    #     node_labels = nx.get_node_attributes(G, "guarType")
+    #     nx.draw_networkx_labels(G, pos, node_labels=node_labels)
+    #     edge_labels = nx.get_edge_attributes(G, "guarType")
+    #     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    #     plt.show()
+
+    # testDraw(se)
     return se, seNodes
 
-def graphs2json(se, seNodes):
+def graphs2json(GList, se, seNodes):
     '''
     将资金归集的识别结果导出为json
     Params:
         se: 按中心企业切分的资金归集识别列表
         seNodes: 中心企业列表
     '''
-    pass
+    # G.add_edge(
+    #             line[tag["myId"]],
+    #             line[tag["recipId"]],
+    #             txnAmount=float(line[tag["txnAmount"]]),
+    #             txnDateTime=int(line[tag["txnDateTime"]]),
+    #             isLoan=int(line[tag["isLoan"]]),
+    #         )
+    collectionList = {"nodes": [], "links": []}
+    allList = {"nodes": [], "links": []}
+    tmp = {"nodes": [], "links": []}
+    i = 0
+    Gid = 0  # 子图编号
+    allCount = 0
+    for item in GList:
+        tmp["nodes"], tmp["links"] = [], []
+        # 初始化子图数据, 先后加点和边
+        for n in item.nodes:
+            tmp["nodes"].append(
+                {"group": 0, "class": "inc", "size": 15, "Gid": Gid, "id": n}
+            )
+        for u in item.nodes():
+            for v in list(item.neighbors(u)):
+                for k in item[u][v]:
+                    tmp["links"].append(
+                        {"source": u, "target": v, "rate": item[u][v][k]["txnAmount"], "txnDate": item[u][v][k]["txnDateTime"], "isLoan": item[u][v][k]["isLoan"]}
+                    )
+        allCount += len(tmp["nodes"])
+        # 每个json存储的点不超过3000个
+        if i == 0:
+            print("第", i, "个json的节点数量：", len(tmp["nodes"]))
+            path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
+            with open(path, "w") as f:
+                json.dump(tmp, f)
+            i += 1
+            allCount = 0
+        elif allCount >= 2950:
+            print("第", i, "个json的节点数量：", len(allList["nodes"]))
+            path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
+            with open(path, "w") as f:
+                json.dump(allList, f)
+            i += 1
+            allCount = 0
+            allList["nodes"], allList["links"] = [], []
+            allList["nodes"] += tmp["nodes"]
+            allList["links"] += tmp["links"]
+        else:
+            allList["nodes"] += tmp["nodes"]
+            allList["links"] += tmp["links"]
+        Gid += 1
+    # 清空还未存储的点
+    if allList["nodes"]:
+        print("第", i, "个json的节点数量：", len(allList["nodes"]))
+        path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
+        with open(path, "w") as f:
+            json.dump(allList, f)
+    # 存储具有资金归集行为的点
+    for n in se.nodes():
+        group, c = 2, "end"
+        if n in seNodes[1]:
+            group, c = 1, "mid"
+        elif n in seNodes[0]:
+            group, c = 0, "start"
+        collectionList["nodes"].append({"group": group, "class": c, "size": 15, "Gid": Gid, "id": n})
+        Gid += 1
+    for u in se.nodes():
+        for v in list(se.neighbors(u)):
+            for k in se[u][v]:
+                collectionList["links"].append(
+                    {"source": u, "target": v, "rate": se[u][v][k]["txnAmount"], "txnDate": se[u][v][k]["txnDateTime"], "isLoan": se[u][v][k]["isLoan"]}
+                )
+    print("存储具有资金归集行为企业信息的json的节点数量：", len(collectionList["nodes"]))
+    with open(r"./frontend/res/moneyCollection/moneyCollection.json", "w") as f:
+        json.dump(collectionList, f)
