@@ -17,9 +17,7 @@ def getInitGuaranteeG(path):
     """
     guarantee = pd.read_csv(path, encoding="gb2312")
     guarantee.columns = ["src", "destn", "time", "guarType", "amount"]
-    # 每个样本的担保时间都相同, 没有分析意义, 直接删除
-    guarantee.drop(["time"], axis=1, inplace=True)
-    # 担保金额为0的样本视为无效的担保, 直接删去, 可减少870个样本
+    # 担保金额为0的样本视为无效的担保, 直接删去, 可减少870条边
     guarantee = guarantee[~guarantee["amount"].isin([0])]
 
     # 构建初始图G, 一共18711个节点, 13478条边
@@ -39,6 +37,10 @@ def getInitGuaranteeG(path):
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
+    print("----------初始化子图信息完成----------")
+    print("有效担保关系节点总数：", nx.number_of_nodes(G))
+    print("有效担保关系边总数：", nx.number_of_edges(G))
+    print("切分子图数量：", len(subG))
     return subG
 
 
@@ -50,14 +52,13 @@ def markRiskOfGuaranteeG(GList):
     Output:
         GList: 更新担保关系的列表
     """
-    cir = list()
     for subG in GList:
-        # 双节点的子图, 仅可能为担保链或互保
+        # 双节点的子图, 仅可能为普通担保或互保
         if subG.number_of_nodes() == 2:
-            # 担保链判定
+            # 普通担保判定
             if nx.is_tree(subG):
                 for n in subG.nodes():
-                    subG.nodes[n]["guarType"].append("Chain")
+                    subG.nodes[n]["guarType"].append("Normal")
             # 互保判定
             else:
                 for n in subG.nodes():
@@ -131,13 +132,13 @@ def markRiskOfGuaranteeG(GList):
                 trace.pop()
 
             dfs2FindCircle(list(tmpG.nodes())[0])
-            cir.append(subG)
         # 担保链: 若节点均不属于上述情况则该节点为担保链上的点
         for u, v in subG.edges():
             if not subG.nodes[u]["guarType"] and "Chain" not in subG.nodes[u]["guarType"]:
                 subG.nodes[u]["guarType"].append("Chain")
             if not subG.nodes[v]["guarType"] and "Chain" not in subG.nodes[v]["guarType"]:
                     subG.nodes[v]["guarType"].append("Chain")
+    print("----------担保关系识别完成----------")
     return GList
 
 
@@ -185,6 +186,7 @@ def harmonicDistance(subG):
             k = 20/(maxM - minM)
             for n in G.nodes():
                 G.nodes[n]["std"] = 5 + k * (G.nodes[n]["m"] - minM)
+    print("----------m值计算完成----------")
 
 
 
@@ -205,9 +207,8 @@ def graphs2json(GList):
     Gid = 0  # 子图编号
     doubleCount = 0
     i = 0
-    # single = ["chain", "mutual", "focus", "cross","circle"]
     c = ["doubleRisk", "tripleRisk", "quadraRisk"]
-    offsetDict = {"Chain": 0, "Mutual": 1, "Focus": 2, "Cross": 3,"Circle": 4}
+    offsetDict = {"Chain": 0, "Mutual": 1, "Focus": 2, "Cross": 3,"Circle": 4, "Normal": 5}
     for item in GList:
         # 初始化子图数据, 先后加点和边
         isMutual, isCircle, isCross, isFocus, isUnusual = False, False, False, False, False
@@ -223,7 +224,7 @@ def graphs2json(GList):
             if "Circle" in item.nodes[n]["guarType"]:
                 isCircle, isUnusual = True, True
             if riskCount > 0:
-                tmp["nodes"].append({"group": riskCount + 4, "class": c[riskCount-1], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]})
+                tmp["nodes"].append({"group": riskCount + 5, "class": c[riskCount-1], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]})
             else:
                 tmp["nodes"].append({"group": offsetDict[item.nodes[n]["guarType"][0]], "class": item.nodes[n]["guarType"][0], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]})
         # 加边
@@ -267,6 +268,7 @@ def graphs2json(GList):
     print("focusList", len(focusList["nodes"]))
     print("doubleNormalList", len(doubleNormalList["nodes"]))
     print("multiNormalList", len(multiNormalList["nodes"]))
+    print("----------担保关系的json导出完成完成----------")
     # 将上述数据写入文件
     with open(r"./frontend/res/guarantee/circle.json", "w") as f:
         json.dump(circleList, f)
@@ -276,7 +278,5 @@ def graphs2json(GList):
         json.dump(crossList, f)
     with open(r"./frontend/res/guarantee/focus.json", "w") as f:
         json.dump(focusList, f)
-    # with open(r"./frontend/res/guarantee/doubleNormal.json", "w") as f:
-    #     json.dump(doubleNormalList, f)
     with open(r"./frontend/res/guarantee/multiNormal.json", "w") as f:
         json.dump(multiNormalList, f)
