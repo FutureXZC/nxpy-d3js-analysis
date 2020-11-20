@@ -206,7 +206,7 @@ def graphs2json(GList):
     doubleCount = 0
     i = 0
     # single = ["chain", "mutual", "focus", "cross","circle"]
-    c = ["doubleRisk", "tripleRisk", "quadraRisk", "pentaRisk"]
+    c = ["doubleRisk", "tripleRisk", "quadraRisk"]
     offsetDict = {"Chain": 0, "Mutual": 1, "Focus": 2, "Cross": 3,"Circle": 4}
     for item in GList:
         # 初始化子图数据, 先后加点和边
