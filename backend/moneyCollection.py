@@ -71,8 +71,12 @@ def getInitmoneyCollectionG(path):
                 continue
             # 构建初始图G, 将符合条件的节点和边加入G
             if not G.has_node(line[tag["myId"]]):
+                if len(line[tag["myId"]]) >= 15:
+                    line[tag["myId"]] = line[tag["myId"]][:-2] + '00'
                 G.add_node(line[tag["myId"]])
             if not G.has_node(line[tag["recipId"]]):
+                if len(line[tag["recipId"]]) >= 15:
+                    line[tag["recipId"]] = line[tag["recipId"]][:-2] + '00'
                 G.add_node(line[tag["recipId"]])
             G.add_edge(
                 line[tag["myId"]],
@@ -131,35 +135,23 @@ def findShellEnterprise(GList):
                                 bestMatchDate = (subG[f][n][k1]["txnDateTime"], subG[n][c][k2]["txnDateTime"])
                         # 如果找到了匹配到的贷款和转账, 则修改节点属性, 将其记录到se中
                     if bestMatchC:
-                        if len(bestMatchF) >= 15:
-                            fres = bestMatchF[:-2] + '00'
-                        if len(n) >= 15:
-                            nres = n[:-2] + '00'
-                        if len(bestMatchC) >= 15:
-                            cres = bestMatchC[:-2] + '00'
-                        print("father: ", fres, "node: ", nres, "child: ", cres)
+                        print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC)
                         print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
-                        se.add_edge(fres, nres, txnAmount=bestMatchLoan, isLoan=0, date=bestMatchDate[0])
-                        se.add_edge(nres, cres, txnAmount=bestMatchTxn, isLoan=1, date=bestMatchDate[1])
-                        seNodes.append(nres)
+                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, date=bestMatchDate[0])
+                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, date=bestMatchDate[1])
+                        seNodes.append(n)
     if (nx.number_of_nodes(se)):
         print(se.size(), nx.number_of_nodes(se))
         seNodes = list(set(seNodes))
         print("具有资金归集行为的中间企业数量为：", len(seNodes))
         print("资金归集的中间企业列表：", seNodes)
-
-    # def testDraw(G):
-    #     """
-    #     测试绘图
-    #     """
-    #     pos = nx.shell_layout(G)
-    #     nx.draw(G, pos)
-    #     node_labels = nx.get_node_attributes(G, "guarType")
-    #     nx.draw_networkx_labels(G, pos, node_labels=node_labels)
-    #     edge_labels = nx.get_edge_attributes(G, "guarType")
-    #     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    #     plt.show()
-
-    # testDraw(se)
     return se, seNodes
 
+def graphs2json(se, seNodes):
+    '''
+    将资金归集的识别结果导出为json
+    Params:
+        se: 按中心企业切分的资金归集识别列表
+        seNodes: 中心企业列表
+    '''
+    pass
