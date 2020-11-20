@@ -134,82 +134,11 @@ def markRiskOfGuaranteeG(GList):
             cir.append(subG)
         # 担保链: 若节点均不属于上述情况则该节点为担保链上的点
         for u, v in subG.edges():
-            if not subG.nodes[u]["guarType"] or not subG.nodes[v]["guarType"]:
-                if "Chain" not in subG.nodes[u]["guarType"]:
-                    subG.nodes[u]["guarType"].append("Chain")
-                if "Chain" not in subG.nodes[v]["guarType"]:
+            if not subG.nodes[u]["guarType"] and "Chain" not in subG.nodes[u]["guarType"]:
+                subG.nodes[u]["guarType"].append("Chain")
+            if not subG.nodes[v]["guarType"] and "Chain" not in subG.nodes[v]["guarType"]:
                     subG.nodes[v]["guarType"].append("Chain")
     return GList
-
-
-def find_communities(G, T, r=0.05):
-    """
-    SLPA社区/集群发现算法
-    Params:
-        G: 要进行社区/集群划分的图
-        T: 最大迭代次数
-        r: 默认r值
-    Returns:
-        communities: 记录社区/集群信息的字典列表
-    """
-    # 第一步: 初始化
-    memory = {i: {i: 1} for i in G.nodes()}
-    # 第二步: 递进
-    for _ in range(T):
-        listenersOrder = list(G.nodes())
-        np.random.shuffle(listenersOrder)
-        for listener in listenersOrder:
-            speakers = G[listener].keys()
-            if len(speakers) == 0:
-                continue
-            labels = defaultdict(int)
-            for _, speaker in enumerate(speakers):
-                # Speaker规则
-                total = float(sum(memory[speaker].values()))
-                labels[
-                    list(memory[speaker].keys())[
-                        np.random.multinomial(
-                            1, [freq / total for freq in memory[speaker].values()]
-                        ).argmax()
-                    ]
-                ] += 1
-            # Listener规则
-            acceptedLabel = max(labels, key=labels.get)
-            # 更新listener缓存
-            if acceptedLabel in memory[listener]:
-                memory[listener][acceptedLabel] += 1
-            else:
-                memory[listener][acceptedLabel] = 1
-    # 第三步
-    for node, mem in memory.items():
-        delabel = list()
-        for label, freq in mem.items():
-            if freq / float(T + 1) < r:
-                delabel.append(label)
-        for item in delabel:
-            del mem[item]
-    # 找到节点间的关系
-    communities = {}
-    for node, mem in memory.items():
-        for label in mem.keys():
-            if label in communities:
-                communities[label].add(node)
-            else:
-                communities[label] = set([node])
-    # 移除嵌套社区
-    nestedCommunities = set()
-    keys = list(communities.keys())
-    for i, label0 in enumerate(keys[:-1]):
-        comm0 = communities[label0]
-        for label1 in keys[i + 1 :]:
-            comm1 = communities[label1]
-            if comm0.issubset(comm1):
-                nestedCommunities.add(label0)
-            elif comm0.issuperset(comm1):
-                nestedCommunities.add(label1)
-    for comm in nestedCommunities:
-        del communities[comm]
-    return communities
 
 
 def harmonicDistance(subG):
@@ -222,6 +151,7 @@ def harmonicDistance(subG):
     """
     for G in subG:
         # G = nx.reverse(G)
+        G = nx.Graph(G)
         m = pd.DataFrame(columns=G.nodes())
         maxmij = max(nx.get_edge_attributes(G, "amount").values())
         dis = dict(nx.all_pairs_dijkstra_path_length(G))
@@ -267,7 +197,7 @@ def graphs2json(GList):
         输出转化后的json文件到filePath1和filepath2下
     """
     circleList = {"links": [], "nodes": []}
-    MutualList = {"links": [], "nodes": []}
+    mutualList = {"links": [], "nodes": []}
     crossList = {"links": [], "nodes": []}
     focusList = {"links": [], "nodes": []}
     doubleNormalList = {"links": [], "nodes": []}
@@ -275,77 +205,64 @@ def graphs2json(GList):
     Gid = 0  # 子图编号
     doubleCount = 0
     i = 0
+    # single = ["chain", "mutual", "focus", "cross","circle"]
     c = ["doubleRisk", "tripleRisk", "quadraRisk", "pentaRisk"]
-    single = ["circle", "mutual", "cross", "focus", "chain"]
+    offsetDict = {"Chain": 0, "Mutual": 1, "Focus": 2, "Cross": 3,"Circle": 4}
     for item in GList:
         # 初始化子图数据, 先后加点和边
         isMutual, isCircle, isCross, isFocus, isUnusual = False, False, False, False, False
-        offset = 0
+        tmp = {"links": [], "nodes": []}
         for n in item.nodes:
             riskCount = len(item.nodes[n]["guarType"]) - 1
             if "Mutual" in item.nodes[n]["guarType"]:
                 isMutual, isUnusual = True, True
-                if riskCount == 0:
-                    offset = 1
-            elif "Circle" in item.nodes[n]["guarType"]:
-                isCircle, isUnusual = True, True
-                if riskCount == 0:
-                    offset = 0
-            elif "Cross" in item.nodes[n]["guarType"]:
-                isCross, isUnusual = True, True
-                if riskCount == 0:
-                    offset = 2
-            elif "Focus" in item.nodes[n]["guarType"]:
+            if "Focus" in item.nodes[n]["guarType"]:
                 isFocus, isUnusual = True, True
-                if riskCount == 0:
-                    offset = 3
-            else:
-                offset = 4
+            if "Cross" in item.nodes[n]["guarType"]:
+                isCross, isUnusual = True, True
+            if "Circle" in item.nodes[n]["guarType"]:
+                isCircle, isUnusual = True, True
             if riskCount > 0:
-                tmpNode = {"group": riskCount, "class": c[riskCount-1], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]}
+                tmp["nodes"].append({"group": riskCount + 4, "class": c[riskCount-1], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]})
             else:
-                tmpNode = {"group": riskCount, "class": single[offset], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]}
-            if isUnusual:
-                if isCircle:
-                    circleList["nodes"].append(tmpNode)
-                if isMutual:
-                    MutualList["nodes"].append(tmpNode)
-                if isCross:
-                    crossList["nodes"].append(tmpNode)
-                if isFocus:
-                    focusList["nodes"].append(tmpNode)
-            else:
-                if nx.number_of_nodes(item) == 2:
-                    doubleCount += 2
-                    if doubleCount < 2950:
-                        doubleNormalList["nodes"].append(tmpNode)
-                    else:
-                        with open("./frontend/res/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
-                            json.dump(doubleNormalList, f)
-                        i += 1
-                        doubleCount = 0
-                        doubleNormalList = {"links": [], "nodes": []}
-                else:
-                    multiNormalList["nodes"].append(tmpNode)
+                tmp["nodes"].append({"group": offsetDict[item.nodes[n]["guarType"][0]], "class": item.nodes[n]["guarType"][0], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]})
+        # 加边
         for u, v in item.edges:
-            tmpLink = {"source": u, "target": v, "amount": item[u][v]["amount"], "Gid": Gid}
-            if isUnusual:
-                if isCircle:
-                    circleList["links"].append(tmpLink)
-                if isMutual:
-                    MutualList["links"].append(tmpLink)
-                if isCross:
-                    crossList["links"].append(tmpLink)
-                if isFocus:
-                    focusList["links"].append(tmpLink)
-            else:
-                if nx.number_of_nodes(item) == 2:
-                    doubleNormalList["links"].append(tmpLink)
+            tmp["links"].append({"source": u, "target": v, "amount": item[u][v]["amount"]})
+        # 存到对应类型的json中
+        if isUnusual:
+            if isCircle:
+                circleList["nodes"] += (tmp["nodes"])
+                circleList["links"] += (tmp["links"])
+            if isMutual:
+                mutualList["nodes"] += (tmp["nodes"])
+                mutualList["links"] += (tmp["links"])
+            if isCross:
+                crossList["nodes"] += (tmp["nodes"])
+                crossList["links"] += (tmp["links"])
+            if isFocus:
+                focusList["nodes"] += (tmp["nodes"])
+                focusList["links"] += (tmp["links"])
+        else:  # "Chain"
+            if nx.number_of_nodes(item) == 2:
+                doubleCount += 2
+                if doubleCount < 2950:
+                    doubleNormalList["nodes"] += (tmp["nodes"])
+                    doubleNormalList["links"] += (tmp["links"])
                 else:
-                    multiNormalList["links"].append(tmpLink)
+                    with open("./frontend/res/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
+                        json.dump(doubleNormalList, f)
+                    i += 1
+                    doubleCount = 2
+                    doubleNormalList = {"links": [], "nodes": []}
+                    doubleNormalList["nodes"] += (tmp["nodes"])
+                    doubleNormalList["links"] += (tmp["links"])
+            else:
+                multiNormalList["nodes"] += (tmp["nodes"])
+                multiNormalList["links"] += (tmp["links"])
         Gid += 1
     print("circleList", len(circleList["nodes"]))
-    print("MutualList", len(MutualList["nodes"]))
+    print("mutualList", len(mutualList["nodes"]))
     print("crossList", len(crossList["nodes"]))
     print("focusList", len(focusList["nodes"]))
     print("doubleNormalList", len(doubleNormalList["nodes"]))
@@ -354,7 +271,7 @@ def graphs2json(GList):
     with open(r"./frontend/res/guarantee/circle.json", "w") as f:
         json.dump(circleList, f)
     with open(r"./frontend/res/guarantee/mutual.json", "w") as f:
-        json.dump(MutualList, f)
+        json.dump(mutualList, f)
     with open(r"./frontend/res/guarantee/cross.json", "w") as f:
         json.dump(crossList, f)
     with open(r"./frontend/res/guarantee/focus.json", "w") as f:
