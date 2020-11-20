@@ -251,6 +251,7 @@ def graphs2json(GList):
                     doubleNormalList["nodes"] += (tmp["nodes"])
                     doubleNormalList["links"] += (tmp["links"])
                 else:
+                    print("doubleNormalList", len(doubleNormalList["nodes"]))
                     with open("./frontend/res/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
                         json.dump(doubleNormalList, f)
                     i += 1
@@ -262,13 +263,16 @@ def graphs2json(GList):
                 multiNormalList["nodes"] += (tmp["nodes"])
                 multiNormalList["links"] += (tmp["links"])
         Gid += 1
+    # 将剩余的双节点子图存到下一个json中
+    if doubleNormalList["nodes"]:
+        print("doubleNormalList", len(doubleNormalList["nodes"]))
+        with open("./frontend/res/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
+            json.dump(doubleNormalList, f)
     print("circleList", len(circleList["nodes"]))
     print("mutualList", len(mutualList["nodes"]))
     print("crossList", len(crossList["nodes"]))
     print("focusList", len(focusList["nodes"]))
-    print("doubleNormalList", len(doubleNormalList["nodes"]))
     print("multiNormalList", len(multiNormalList["nodes"]))
-    print("----------担保关系的json导出完成完成----------")
     # 将上述数据写入文件
     with open(r"./frontend/res/guarantee/circle.json", "w") as f:
         json.dump(circleList, f)
@@ -280,3 +284,4 @@ def graphs2json(GList):
         json.dump(focusList, f)
     with open(r"./frontend/res/guarantee/multiNormal.json", "w") as f:
         json.dump(multiNormalList, f)
+    print("----------担保关系的json导出完成完成----------")

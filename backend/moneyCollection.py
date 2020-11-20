@@ -135,8 +135,8 @@ def findShellEnterprise(GList):
                                 bestMatchDate = (subG[f][n][k1]["txnDateTime"], subG[n][c][k2]["txnDateTime"])
                         # 如果找到了匹配到的贷款和转账, 则修改节点属性, 将其记录到se中
                     if bestMatchC:
-                        # print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC)
-                        # print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
+                        print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC)
+                        print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
                         se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, txnDateTime=bestMatchDate[0])
                         se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, txnDateTime=bestMatchDate[1])
                         seNodes[0].append(bestMatchF)
@@ -149,20 +149,6 @@ def findShellEnterprise(GList):
         print("具有资金归集行为的中间企业数量为：", len(seNodes[1]))
         print("具有资金归集行为的接收转账企业数量为：", len(seNodes[2]))
         print("资金归集的中间企业列表：", seNodes[1])
-
-    # def testDraw(G):
-    #     """
-    #     测试绘图
-    #     """
-    #     pos = nx.shell_layout(G)
-    #     nx.draw(G, pos)
-    #     node_labels = nx.get_node_attributes(G, "guarType")
-    #     nx.draw_networkx_labels(G, pos, node_labels=node_labels)
-    #     edge_labels = nx.get_edge_attributes(G, "guarType")
-    #     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    #     plt.show()
-
-    # testDraw(se)
     return se, seNodes
 
 def graphs2json(GList, se, seNodes):
@@ -172,13 +158,6 @@ def graphs2json(GList, se, seNodes):
         se: 按中心企业切分的资金归集识别列表
         seNodes: 中心企业列表
     '''
-    # G.add_edge(
-    #             line[tag["myId"]],
-    #             line[tag["recipId"]],
-    #             txnAmount=float(line[tag["txnAmount"]]),
-    #             txnDateTime=int(line[tag["txnDateTime"]]),
-    #             isLoan=int(line[tag["isLoan"]]),
-    #         )
     collectionList = {"nodes": [], "links": []}
     allList = {"nodes": [], "links": []}
     tmp = {"nodes": [], "links": []}

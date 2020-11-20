@@ -183,6 +183,7 @@ def graphs2json(GList):
                 multiCurList["nodes"] += tmp["nodes"]
                 multiCurList["links"] += tmp["links"]
         Gid += 1
+    # 剩余子图信息存到下一个json中
     if len(tmp["nodes"]) == 2:
         doubleCurList["nodes"] += tmp["nodes"]
         doubleCurList["links"] += tmp["links"]
