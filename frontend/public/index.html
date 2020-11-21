@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>基于关联图谱的企业关系识别</title>
+    <script src="http://cdn.bootcss.com/jquery/2.1.4/jquery.min.js"></script>
+    <link href="http://cdn.bootcss.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://cdn.bootcss.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+</head>
+
+<style>
+    body {
+        background-color: #2a2b30;
+        padding: 30px 40px;
+        text-align: center;
+        /*font-family: OpenSans-Light, PingFang SC, Hiragino Sans GB, Microsoft Yahei, Microsoft Jhenghei, sans-serif;*/
+    }
+    #mode span.active,#mode span:hover{
+        background-color: white;
+        color: #333;
+        cursor: pointer;
+    }
+
+    #mode select{
+        display: inline-block;
+        background-color: #2a2b30;
+        border: 1px solid #fff;
+        color: #2a2b30;
+        padding: 8px 20px;
+        border-radius: 4px;
+        font-size: 20px;
+        transition: color, background-color .3s;
+        -o-transition: color, background-color .3s;
+        -ms-transition: color, background-color .3s;
+        -moz-transition: color, background-color .3s;
+        -webkit-transition: color, background-color .3s;
+    }
+
+    #mode span {
+        display: inline-block;
+        border: 1px solid #fff;
+        color: #fff;
+        padding: 8px 20px;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: color, background-color .3s;
+        -o-transition: color, background-color .3s;
+        -ms-transition: color, background-color .3s;
+        -moz-transition: color, background-color .3s;
+        -webkit-transition: color, background-color .3s;
+    }
+    #mode {
+        position: relative;
+        top:100px;
+        alignment: center;
+
+    }
+    #img {
+        margin-top: 50px;
+    }
+
+</style>
+
+<body>
+<h1 style="color: azure; font-size: 30px; text-align: center; ">“江苏银行”杯金融大数据建模挑战赛</h1>
+<h1 style="color: azure; font-size: 25px; text-align: center; "> —— 基于关联图谱的企业关系识别</h1>
+<br>
+<h1 style="color: azure; font-size: 20px; text-align: center; ">作者：李正材 陈志祥</h1>
+<div id="img">
+    <img src="./image/jiangsu.jpg", width="150px", height="150px">
+    <img src="./image/nupt.jpg", width="230px", height="150px">
+</div>
+
+<div id="mode">
+<!--    <select style="color: #f2f2f2;font-size: 20px">-->
+<!--        <option value="volvo">Volvo</option>-->
+<!--        <option value="saab">Saab</option>-->
+<!--        <option value="opel">Opel</option>-->
+<!--        <option value="audi">Audi</option>-->
+<!--    </select>-->
+    <span style="color: #f2f2f2;font-size: 20px">控制关系</span>
+    <span style="color: #f2f2f2; font-size: 20px">担保关系</span>
+    <span style="color: #f2f2f2;font-size: 20px">交易关系</span>
+
+</div>
+</body>
+<script>
+    $('#mode span').click(function (event){
+        if ($(this).text()=='控制关系'){
+            window.open("./kongzhiren_html/kongzhiren_index.html");
+        }else if ($(this).text()=='担保关系'){
+            window.open("./danbao_html/danbao_index.html");
+        }else if ($(this).text()=='交易关系'){
+            window.open("./zijinguiji_html/zijinguiji_index.html");
+        }
+    });
+
+    // var red_color=['#9cd3ff','#37a6ff','#fff901','#f9df22',]
+    // var red_color=['#ffbc7d','#fe7d02','#c93a3a','#ff0000']
+</script>
+</html>

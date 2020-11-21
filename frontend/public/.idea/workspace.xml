@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="1ba21af1-86c4-4114-88ef-0bd72dda3151" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="tsconfig.json" />
+        <option value="HTML File" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectId" id="1kGuctcAPBDRApbD7PtdKkp4f0B" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="DefaultHtmlFileTemplate" value="HTML File" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/guarantee_json" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="vue.rearranger.settings.migration" value="true" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\guarantee_json" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\zijinguiji_html" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\moneyCollection" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\image" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\control_json" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\kongzhiren" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\other" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1ba21af1-86c4-4114-88ef-0bd72dda3151" name="Default Changelist" comment="" />
+      <created>1605339331865</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1605339331865</updated>
+      <workItem from="1605339332913" duration="1780000" />
+      <workItem from="1605341159572" duration="4641000" />
+      <workItem from="1605512291661" duration="16428000" />
+      <workItem from="1605573446820" duration="33719000" />
+      <workItem from="1605660781913" duration="50000" />
+      <workItem from="1605708816408" duration="2800000" />
+      <workItem from="1605746514241" duration="33559000" />
+      <workItem from="1605788530786" duration="32000" />
+      <workItem from="1605788982130" duration="657000" />
+      <workItem from="1605790588642" duration="3305000" />
+      <workItem from="1605798342383" duration="1439000" />
+      <workItem from="1605834624018" duration="704000" />
+      <workItem from="1605836338001" duration="27056000" />
+      <workItem from="1605922563289" duration="21815000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="2291" y="87" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1605597440389">
+      <screen x="1920" y="0" width="1280" height="693" />
+    </state>
+    <state x="2291" y="87" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/1920.0.1280.693/0.0.1920.1040@1920.0.1280.693" timestamp="1605597440389" />
+    <state x="2217" y="151" key="run.anything.popup" timestamp="1605610674766">
+      <screen x="1920" y="0" width="1280" height="693" />
+    </state>
+    <state x="2217" y="151" key="run.anything.popup/1920.0.1280.693/0.0.1920.1040@1920.0.1280.693" timestamp="1605610674766" />
+    <state x="2335" y="150" width="672" height="452" key="search.everywhere.popup" timestamp="1605594492629">
+      <screen x="1920" y="0" width="1280" height="693" />
+    </state>
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/1920.0.1280.693/0.0.1920.1040@0.0.1920.1040" timestamp="1605513450635" />
+    <state x="2335" y="150" width="672" height="452" key="search.everywhere.popup/1920.0.1280.693/0.0.1920.1040@1920.0.1280.693" timestamp="1605594492629" />
+  </component>
+</project>
