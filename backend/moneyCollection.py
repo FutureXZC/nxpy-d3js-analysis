@@ -31,7 +31,7 @@ def getInitmoneyCollectionG(path):
     # 由于可能存在两个节点间重复建立交易关系, 故使用MultiDiGraph
     G = nx.MultiDiGraph()
     codes = [[], []]
-    # 由于原csv中存在非utf-8字符，需过滤掉非uft-8字符
+    # 由于原csv中存在非utf-8字符, 需过滤掉非uft-8字符
     with open("./backend/res/moneyCollection.csv", encoding='utf-8', errors='ignore') as f:
         # 给定的识别贷款和转账的条件
         originData = csv.reader(f)
@@ -143,8 +143,8 @@ def getNetIncome(Glist):
                 for k2 in subG[n][c]:
                     netIncome -= subG[n][c][k2]["txnAmount"]
             subG.nodes[n]["netIncome"] = netIncome
-        # 标准化净资金流入，用于可视化时的size
-        d = nx.get_node_attributes(subG, "netIncome").values()
+        # 标准化净资金流入, 用于可视化时的size, 
+        d = [abs(x) for x in nx.get_node_attributes(subG, "netIncome").values()]
         maxNetIncome, minNetIncome = max(d), min(d)
         if maxNetIncome == minNetIncome:
             for n in subG.nodes():
@@ -152,7 +152,7 @@ def getNetIncome(Glist):
         else:
             k = 15/(maxNetIncome - minNetIncome)
             for n in subG.nodes():
-                subG.nodes[n]["std"] = 5 + k * (subG.nodes[n]["netIncome"] - minNetIncome)
+                subG.nodes[n]["std"] = 5 + k * (abs(subG.nodes[n]["netIncome"]) - minNetIncome)
     print("----------净资金流入计算完成----------")
 
 
@@ -237,8 +237,12 @@ def graphs2json(GList, se, seNodes):
         tmp["nodes"], tmp["links"] = [], []
         # 初始化子图数据, 先后加点和边
         for n in item.nodes():
+            if item.nodes[n]["netIncome"] >= 0:
+                group, c = 3, "pos"
+            else:
+                group, c = 4, "neg"
             tmp["nodes"].append(
-                {"group": 3, "class": "inc", "size": item.nodes[n]["std"], "Gid": Gid, "id": n}
+                {"group": group, "class": c, "size": item.nodes[n]["std"], "Gid": Gid, "id": n}
             )
         for u in item.nodes():
             for v in list(item.neighbors(u)):
