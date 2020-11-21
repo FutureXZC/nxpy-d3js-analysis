@@ -41,11 +41,13 @@ def getInitControlG(path):
             rate=row["rate"],
             # relType=row["relType"],
         )
+    print("----------控制人表数据读取完成----------")
     # 切分子图
     tmp = nx.to_undirected(G)
     subG = list()
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
+    print("----------控制人子图切分完成----------")
     return subG
 
 
@@ -104,6 +106,7 @@ def getRootOfControlG(subG):
         else:
             # 无交叉持股的子图拓扑排序后为空
             rootG.append(G)
+    print("----------控制人关系识别完成----------")
     return rootG
 
 
@@ -203,3 +206,4 @@ def graphs2json(GList):
         json.dump(controlList, f)
     with open(r"./frontend/res/control/cross.json", "w") as f:
         json.dump(crossList, f)
+    print("----------控制人json导出完成----------")
