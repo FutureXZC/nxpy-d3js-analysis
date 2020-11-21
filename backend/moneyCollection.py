@@ -179,6 +179,7 @@ def findShellEnterprise(GList):
     return se, seNodes
 
 
+
 def graphs2json(GList, se, seNodes):
     '''
     将资金归集的识别结果导出为json
