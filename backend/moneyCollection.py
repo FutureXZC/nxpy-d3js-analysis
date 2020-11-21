@@ -30,6 +30,7 @@ def getInitmoneyCollectionG(path):
     """
     # 由于可能存在两个节点间重复建立交易关系, 故使用MultiDiGraph
     G = nx.MultiDiGraph()
+    codes = [[], []]
     # 由于原csv中存在非utf-8字符，需过滤掉非uft-8字符
     with open("./backend/res/moneyCollection.csv", encoding='utf-8', errors='ignore') as f:
         # 给定的识别贷款和转账的条件
@@ -46,6 +47,8 @@ def getInitmoneyCollectionG(path):
         }
         i = 0
         for line in originData:
+            if i == 0:
+                print(line[0], line[29], line[1], line[4], line[7], line[6], line[33], line[21])
             # 忽略标题行和Id为空的行
             if line[tag["myId"]] == '' or line[tag["recipId"]] == '' or i == 0:
                 i += 1
@@ -56,7 +59,24 @@ def getInitmoneyCollectionG(path):
                 continue
             # 贷款条件筛选
             if int(line[tag["isLoan"]]) == loan["isLoan"] and line[tag["txnCode"]] in loan["code"]:
-                pass
+                codes[0].append(line[tag["txnCode"]])
+                # 构建初始图G, 将符合条件的节点和边加入G
+                if not G.has_node(line[tag["myId"]]):
+                    if len(line[tag["myId"]]) >= 15:
+                        line[tag["myId"]] = line[tag["myId"]][:-2] + '00'
+                    G.add_node(line[tag["myId"]])
+                if not G.has_node(line[tag["recipId"]]):
+                    if len(line[tag["recipId"]]) >= 15:
+                        line[tag["recipId"]] = line[tag["recipId"]][:-2] + '00'
+                    G.add_node(line[tag["recipId"]])
+                G.add_edge(
+                    line[tag["myId"]],
+                    line[tag["recipId"]],
+                    txnAmount=float(line[tag["txnAmount"]]),
+                    txnDateTime=int(line[tag["txnDateTime"]]),
+                    isLoan=int(line[tag["isLoan"]]),
+                    txnCode=line[tag["txnCode"]],
+                )
             # 转账条件筛选
             elif not line[tag["status"]] == "R":
                 if line[tag["txnCode"]] in txn["code"] and int(line[tag["isLoan"]]) == txn["isLoan"] and int(line[tag["status"]]) == txn["status"]:
@@ -66,29 +86,30 @@ def getInitmoneyCollectionG(path):
                             flag = True
                             break
                     if flag:
-                        continue                
-            else:
-                continue
-            # 构建初始图G, 将符合条件的节点和边加入G
-            if not G.has_node(line[tag["myId"]]):
-                if len(line[tag["myId"]]) >= 15:
-                    line[tag["myId"]] = line[tag["myId"]][:-2] + '00'
-                G.add_node(line[tag["myId"]])
-            if not G.has_node(line[tag["recipId"]]):
-                if len(line[tag["recipId"]]) >= 15:
-                    line[tag["recipId"]] = line[tag["recipId"]][:-2] + '00'
-                G.add_node(line[tag["recipId"]])
-            G.add_edge(
-                line[tag["myId"]],
-                line[tag["recipId"]],
-                txnAmount=float(line[tag["txnAmount"]]),
-                txnDateTime=int(line[tag["txnDateTime"]]),
-                isLoan=int(line[tag["isLoan"]]),
-            )
+                        continue
+                    codes[1].append(line[tag["txnCode"]])
+                    # 构建初始图G, 将符合条件的节点和边加入G
+                    if not G.has_node(line[tag["myId"]]):
+                        if len(line[tag["myId"]]) >= 15:
+                            line[tag["myId"]] = line[tag["myId"]][:-2] + '00'
+                        G.add_node(line[tag["myId"]])
+                    if not G.has_node(line[tag["recipId"]]):
+                        if len(line[tag["recipId"]]) >= 15:
+                            line[tag["recipId"]] = line[tag["recipId"]][:-2] + '00'
+                        G.add_node(line[tag["recipId"]])
+                    G.add_edge(
+                        line[tag["myId"]],
+                        line[tag["recipId"]],
+                        txnAmount=float(line[tag["txnAmount"]]),
+                        txnDateTime=int(line[tag["txnDateTime"]]),
+                        isLoan=int(line[tag["isLoan"]]),
+                        txnCode=line[tag["txnCode"]],
+                    )                         
             i += 1
     print("符合条件的贷款和转账总数关系总数：", G.size())
     print("含有贷款和转账的公司数量：", nx.number_of_nodes(G))
-
+    codes = [list(set(codes[i])) for i in range(2)]
+    print(codes)
     # 切分子图
     tmp = nx.to_undirected(G)
     GList = list()
@@ -107,6 +128,7 @@ def findShellEnterprise(GList):
     '''
     se = nx.MultiDiGraph()
     seNodes = [[] for i in range(3)]
+    codes = [[], []]
     for subG in GList:
         for n in subG.nodes():
             children = list(subG.neighbors(n))
@@ -135,16 +157,21 @@ def findShellEnterprise(GList):
                                 bestMatchDate = (subG[f][n][k1]["txnDateTime"], subG[n][c][k2]["txnDateTime"])
                         # 如果找到了匹配到的贷款和转账, 则修改节点属性, 将其记录到se中
                     if bestMatchC:
-                        print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC)
+                        print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC, "交易码:：", [subG[bestMatchF][n][k1]["txnCode"], subG[n][bestMatchC][k2]["txnCode"]])
                         print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
-                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, txnDateTime=bestMatchDate[0])
-                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, txnDateTime=bestMatchDate[1])
+                        codes[0].append(subG[f][n][k1]["txnCode"])
+                        codes[1].append(subG[n][c][k2]["txnCode"])
+                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, txnDateTime=bestMatchDate[0], txnCode=subG[bestMatchF][n][k1]["txnCode"])
+                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, txnDateTime=bestMatchDate[1], txnCode=subG[n][bestMatchC][k2]["txnCode"])
                         seNodes[0].append(bestMatchF)
                         seNodes[1].append(n)
                         seNodes[2].append(bestMatchC)
     if (nx.number_of_nodes(se)):
         print(se.size(), nx.number_of_nodes(se))
         seNodes = [list(set(seNodes[i])) for i in range(3)]
+        codes = [list(set(codes[i])) for i in range(2)]
+        print("筛选后贷款的交易码含有：", codes[0])
+        print("筛选后转账的交易码含有：", codes[1])
         print("具有资金归集行为的提供贷款企业数量为：", len(seNodes[0]))
         print("具有资金归集行为的中间企业数量为：", len(seNodes[1]))
         print("具有资金归集行为的接收转账企业数量为：", len(seNodes[2]))
@@ -169,24 +196,17 @@ def graphs2json(GList, se, seNodes):
         # 初始化子图数据, 先后加点和边
         for n in item.nodes:
             tmp["nodes"].append(
-                {"group": 0, "class": "inc", "size": 15, "Gid": Gid, "id": n}
+                {"group": 3, "class": "inc", "size": 15, "Gid": Gid, "id": n}
             )
         for u in item.nodes():
             for v in list(item.neighbors(u)):
                 for k in item[u][v]:
                     tmp["links"].append(
-                        {"source": u, "target": v, "rate": item[u][v][k]["txnAmount"], "txnDate": item[u][v][k]["txnDateTime"], "isLoan": item[u][v][k]["isLoan"]}
+                        {"source": u, "target": v, "rate": item[u][v][k]["txnAmount"], "txnDate": item[u][v][k]["txnDateTime"], "isLoan": item[u][v][k]["isLoan"], "txnCode": item[u][v][k]["txnCode"]}
                     )
         allCount += len(tmp["nodes"])
         # 每个json存储的点不超过3000个
-        if i == 0:
-            print("第", i, "个json的节点数量：", len(tmp["nodes"]))
-            path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
-            with open(path, "w") as f:
-                json.dump(tmp, f)
-            i += 1
-            allCount = 0
-        elif allCount >= 2950:
+        if allCount >= 2950:
             print("第", i, "个json的节点数量：", len(allList["nodes"]))
             path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
             with open(path, "w") as f:
@@ -219,7 +239,7 @@ def graphs2json(GList, se, seNodes):
         for v in list(se.neighbors(u)):
             for k in se[u][v]:
                 collectionList["links"].append(
-                    {"source": u, "target": v, "rate": se[u][v][k]["txnAmount"], "txnDate": se[u][v][k]["txnDateTime"], "isLoan": se[u][v][k]["isLoan"]}
+                    {"source": u, "target": v, "rate": se[u][v][k]["txnAmount"], "txnDate": se[u][v][k]["txnDateTime"], "isLoan": se[u][v][k]["isLoan"], "txnCode": se[u][v][k]["txnCode"]}
                 )
     print("存储具有资金归集行为企业信息的json的节点数量：", len(collectionList["nodes"]))
     with open(r"./frontend/res/moneyCollection/moneyCollection.json", "w") as f:
