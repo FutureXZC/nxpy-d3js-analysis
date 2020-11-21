@@ -151,34 +151,14 @@ def harmonicDistance(subG):
         G: 标记各个节点风险值m后的子图列表
     """
     for G in subG:
-        # G = nx.reverse(G)
-        G = nx.Graph(G)
-        m = pd.DataFrame(columns=G.nodes())
-        maxmij = max(nx.get_edge_attributes(G, "amount").values())
-        dis = dict(nx.all_pairs_dijkstra_path_length(G))
-        for i in G.nodes():
-            mij = dict()
-            for j in dis[i]:
-                if i == j:
-                    mij[j] = 0
-                if dis[i][j]:
-                    mij[j] = sum(np.array(list(dis[i].values())) / dis[i][j])
-            for j in G.nodes():
-                if j not in mij:
-                    mij[j] = maxmij
-            m.loc[i] = mij
-        # m矩阵第i行的行和代表了节点i对图中其他节点的风险大小
-        mRowSum = m.apply(lambda x: x.sum(), axis=1)
-        # m矩阵第j列的列和代表了节点j受到图中其他节点的风险大小
-        # mColSum = m.apply(lambda x: x.sum())
-        for n in G.nodes():
-            G.nodes[n]["m"] = mRowSum[n]
-            # G.nodes[n]["mIn"] = mColSum[n]
-        # mij代表节点i对节点j的担保关系紧密程度
-        for u, v in G.edges():
-            G[u][v]["mij"] = m.loc[u, v]
-        mList = nx.get_node_attributes(G, 'm')
-        maxM, minM = max(mList.values()), min(mList.values())
+        de = dict()
+        tmpG = nx.Graph(G)
+        txnAllSum = sum(nx.get_edge_attributes(tmpG, "amount").values())
+        for n in tmpG.nodes():
+            neighbors = tmpG.adj[n].keys()
+            de[n] = sum(tmpG[n][neighbor]["amount"] / txnAllSum for neighbor in neighbors)
+            G.nodes[n]["m"] = de[n]
+        maxM, minM = max(de.values()), min(de.values())
         if maxM == minM:
             for n in G.nodes():
                 G.nodes[n]["std"] = 15
