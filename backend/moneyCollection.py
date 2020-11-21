@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 
 # 资金归集识别条件
 # txn: transaction, recip: reciprocal
-loan = {
+txn = {
     "code": ['EK95','8002','8003','7743'],
     "isLoan": 0,
 }
-txn = {
+loan = {
     "code": ['6101' ,'6102', '6104' , '61' , '6151' , '2202' , '6002' , '6003' ,
             '6005' , '6006' , '7641' , '7799', '7641' ,'7810', 'DK06' , 'DK05'],
     "txnAmountLimit": 100000.0,
@@ -54,12 +54,12 @@ def getInitmoneyCollectionG(path):
                 i += 1
                 continue
             # 贷款和转账条件筛选
-            # 交易金额应大于10万
-            if float(line[tag["txnAmount"]]) < txn["txnAmountLimit"]:
+            # 贷款和转账金额应大于10万
+            if float(line[tag["txnAmount"]]) < loan["txnAmountLimit"]:
                 continue
-            # 贷款条件筛选
-            if int(line[tag["isLoan"]]) == loan["isLoan"] and line[tag["txnCode"]] in loan["code"]:
-                codes[0].append(line[tag["txnCode"]])
+            # 转账条件筛选
+            if int(line[tag["isLoan"]]) == txn["isLoan"] and line[tag["txnCode"]] in txn["code"]:
+                codes[1].append(line[tag["txnCode"]])
                 # 构建初始图G, 将符合条件的节点和边加入G
                 if not G.has_node(line[tag["myId"]]):
                     if len(line[tag["myId"]]) >= 15:
@@ -77,17 +77,17 @@ def getInitmoneyCollectionG(path):
                     isLoan=int(line[tag["isLoan"]]),
                     txnCode=line[tag["txnCode"]],
                 )
-            # 转账条件筛选
+            # 贷款条件筛选
             elif not line[tag["status"]] == "R":
-                if line[tag["txnCode"]] in txn["code"] and int(line[tag["isLoan"]]) == txn["isLoan"] and int(line[tag["status"]]) == txn["status"]:
+                if line[tag["txnCode"]] in loan["code"] and int(line[tag["isLoan"]]) == loan["isLoan"] and int(line[tag["status"]]) == loan["status"]:
                     flag = False
-                    for item in txn["abstract"]:
+                    for item in loan["abstract"]:
                         if re.search(item, line[tag["abstract"]]):
                             flag = True
                             break
                     if flag:
                         continue
-                    codes[1].append(line[tag["txnCode"]])
+                    codes[0].append(line[tag["txnCode"]])
                     # 构建初始图G, 将符合条件的节点和边加入G
                     if not G.has_node(line[tag["myId"]]):
                         if len(line[tag["myId"]]) >= 15:
@@ -106,7 +106,7 @@ def getInitmoneyCollectionG(path):
                         txnCode=line[tag["txnCode"]],
                     )                         
             i += 1
-    print("符合条件的贷款和转账总数关系总数：", G.size())
+    print("符合条件的贷款和转账关系总数：", G.size())
     print("含有贷款和转账的公司数量：", nx.number_of_nodes(G))
     codes = [list(set(codes[i])) for i in range(2)]
     print(codes)
@@ -177,6 +177,7 @@ def findShellEnterprise(GList):
         print("具有资金归集行为的接收转账企业数量为：", len(seNodes[2]))
         print("资金归集的中间企业列表：", seNodes[1])
     return se, seNodes
+
 
 def graphs2json(GList, se, seNodes):
     '''
