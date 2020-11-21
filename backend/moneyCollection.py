@@ -48,7 +48,7 @@ def getInitmoneyCollectionG(path):
         i = 0
         for line in originData:
             if i == 0:
-                print(line[0], line[29], line[1], line[4], line[7], line[6], line[33], line[21])
+                print("行标：", line[0], line[29], line[1], line[4], line[7], line[6], line[33], line[21])
             # 忽略标题行和Id为空的行
             if line[tag["myId"]] == '' or line[tag["recipId"]] == '' or i == 0:
                 i += 1
@@ -64,11 +64,11 @@ def getInitmoneyCollectionG(path):
                 if not G.has_node(line[tag["myId"]]):
                     if len(line[tag["myId"]]) >= 15:
                         line[tag["myId"]] = line[tag["myId"]][:-2] + '00'
-                    G.add_node(line[tag["myId"]])
+                    G.add_node(line[tag["myId"]], netIncome=0, std=0)
                 if not G.has_node(line[tag["recipId"]]):
                     if len(line[tag["recipId"]]) >= 15:
                         line[tag["recipId"]] = line[tag["recipId"]][:-2] + '00'
-                    G.add_node(line[tag["recipId"]])
+                    G.add_node(line[tag["recipId"]], netIncome=0, std=0)
                 G.add_edge(
                     line[tag["myId"]],
                     line[tag["recipId"]],
@@ -92,11 +92,11 @@ def getInitmoneyCollectionG(path):
                     if not G.has_node(line[tag["myId"]]):
                         if len(line[tag["myId"]]) >= 15:
                             line[tag["myId"]] = line[tag["myId"]][:-2] + '00'
-                        G.add_node(line[tag["myId"]])
+                        G.add_node(line[tag["myId"]], netIncome=0, std=0)
                     if not G.has_node(line[tag["recipId"]]):
                         if len(line[tag["recipId"]]) >= 15:
                             line[tag["recipId"]] = line[tag["recipId"]][:-2] + '00'
-                        G.add_node(line[tag["recipId"]])
+                        G.add_node(line[tag["recipId"]], netIncome=0, std=0)
                     G.add_edge(
                         line[tag["myId"]],
                         line[tag["recipId"]],
@@ -106,16 +106,55 @@ def getInitmoneyCollectionG(path):
                         txnCode=line[tag["txnCode"]],
                     )                         
             i += 1
+    print("----------资金归集表数据读取完成----------")
     print("符合条件的贷款和转账关系总数：", G.size())
     print("含有贷款和转账的公司数量：", nx.number_of_nodes(G))
     codes = [list(set(codes[i])) for i in range(2)]
-    print(codes)
+    print("符合条件的贷款交易码类型：", codes[0])
+    print("符合条件的转账交易码类型：", codes[1])
     # 切分子图
     tmp = nx.to_undirected(G)
     GList = list()
     for c in nx.connected_components(tmp):
         GList.append(G.subgraph(c))
+    print("----------资金归集子图切分完成----------")
     return GList
+
+
+def getNetIncome(Glist):
+    '''
+    计算各个企业的净资金流入
+    Params:
+        GList: 资金归集子图列表
+    Outputs:
+        GList: 在原图中加入点的权重
+    '''
+    for subG in Glist:
+        for n in subG.nodes():
+            children = list(subG.neighbors(n))
+            father = list(subG.predecessors(n))
+            netIncome = 0
+            # 贷款流入
+            for f in father:
+                for k1 in subG[f][n]:
+                    netIncome += subG[f][n][k1]["txnAmount"]
+            # 转账流出
+            for c in children:
+                for k2 in subG[n][c]:
+                    netIncome -= subG[n][c][k2]["txnAmount"]
+            subG.nodes[n]["netIncome"] = netIncome
+        # 标准化净资金流入，用于可视化时的size
+        d = nx.get_node_attributes(subG, "netIncome").values()
+        maxNetIncome, minNetIncome = max(d), min(d)
+        if maxNetIncome == minNetIncome:
+            for n in subG.nodes():
+                subG.nodes[n]["std"] = 12
+        else:
+            k = 15/(maxNetIncome - minNetIncome)
+            for n in subG.nodes():
+                subG.nodes[n]["std"] = 5 + k * (subG.nodes[n]["netIncome"] - minNetIncome)
+    print("----------净资金流入计算完成----------")
+
 
 def findShellEnterprise(GList):
     '''
@@ -167,7 +206,8 @@ def findShellEnterprise(GList):
                         seNodes[1].append(n)
                         seNodes[2].append(bestMatchC)
     if (nx.number_of_nodes(se)):
-        print(se.size(), nx.number_of_nodes(se))
+        print("资金归集三元组关系数量：", se.size() / 2)
+        print("所有处于资金归集三元组中的企业总数", nx.number_of_nodes(se))
         seNodes = [list(set(seNodes[i])) for i in range(3)]
         codes = [list(set(codes[i])) for i in range(2)]
         print("筛选后贷款的交易码含有：", codes[0])
@@ -196,9 +236,9 @@ def graphs2json(GList, se, seNodes):
     for item in GList:
         tmp["nodes"], tmp["links"] = [], []
         # 初始化子图数据, 先后加点和边
-        for n in item.nodes:
+        for n in item.nodes():
             tmp["nodes"].append(
-                {"group": 3, "class": "inc", "size": 15, "Gid": Gid, "id": n}
+                {"group": 3, "class": "inc", "size": item.nodes[n]["std"], "Gid": Gid, "id": n}
             )
         for u in item.nodes():
             for v in list(item.neighbors(u)):
@@ -246,3 +286,4 @@ def graphs2json(GList, se, seNodes):
     print("存储具有资金归集行为企业信息的json的节点数量：", len(collectionList["nodes"]))
     with open(r"./frontend/res/moneyCollection/moneyCollection.json", "w") as f:
         json.dump(collectionList, f)
+    print("----------资金归集json数据导出完成----------")

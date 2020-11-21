@@ -9,13 +9,14 @@ if __name__ == "__main__":
     # control.graphs2json(controlRootG)
 
     # 担保关系表
-    guaranteeG = guarantee.getInitGuaranteeG("./backend/res/guarantee.csv")
-    guaranteeRiskG = guarantee.markRiskOfGuaranteeG(guaranteeG)
-    guarantee.harmonicDistance(guaranteeRiskG)
-    guarantee.graphs2json(guaranteeRiskG)
+    # guaranteeG = guarantee.getInitGuaranteeG("./backend/res/guarantee.csv")
+    # guaranteeRiskG = guarantee.markRiskOfGuaranteeG(guaranteeG)
+    # guarantee.harmonicDistance(guaranteeRiskG)
+    # guarantee.graphs2json(guaranteeRiskG)
 
     # 资金归集表
-    # moneyCollectionCut = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
-    # se, seNodes = moneyCollection.findShellEnterprise(moneyCollectionCut)
-    # moneyCollection.graphs2json(moneyCollectionCut, se, seNodes)
+    moneyCollectionCut = moneyCollection.getInitmoneyCollectionG("./backend/res/moneyCollection.csv")
+    se, seNodes = moneyCollection.findShellEnterprise(moneyCollectionCut)
+    moneyCollection.getNetIncome(moneyCollectionCut)
+    moneyCollection.graphs2json(moneyCollectionCut, se, seNodes)
 
