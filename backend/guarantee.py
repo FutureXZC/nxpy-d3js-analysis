@@ -204,12 +204,32 @@ def graphs2json(GList):
             if "Circle" in item.nodes[n]["guarType"]:
                 isCircle, isUnusual = True, True
             if riskCount > 0:
-                tmp["nodes"].append({"group": riskCount + 5, "class": c[riskCount-1], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]})
+                tmp["nodes"].append({
+                    "group": riskCount + 5, 
+                    "class": c[riskCount-1], 
+                    "size": item.nodes[n]["std"], 
+                    "ctx": ', '.join(item.nodes[n]["guarType"]), 
+                    "Gid": Gid, 
+                    "id": n, 
+                    "m": item.nodes[n]["m"]
+                })
             else:
-                tmp["nodes"].append({"group": offsetDict[item.nodes[n]["guarType"][0]], "class": item.nodes[n]["guarType"][0], "size": item.nodes[n]["std"], "ctx": ', '.join(item.nodes[n]["guarType"]), "Gid": Gid, "id": n, "m": item.nodes[n]["m"]})
+                tmp["nodes"].append({
+                    "group": offsetDict[item.nodes[n]["guarType"][0]], 
+                    "class": item.nodes[n]["guarType"][0], 
+                    "size": item.nodes[n]["std"], 
+                    "ctx": ', '.join(item.nodes[n]["guarType"]), 
+                    "Gid": Gid, 
+                    "id": n, 
+                    "m": item.nodes[n]["m"]
+                })
         # 加边
         for u, v in item.edges:
-            tmp["links"].append({"source": u, "target": v, "amount": item[u][v]["amount"]})
+            tmp["links"].append({
+                "source": u, 
+                "target": v, 
+                "amount": item[u][v]["amount"]
+            })
         # 存到对应类型的json中
         if isUnusual:
             if isCircle:

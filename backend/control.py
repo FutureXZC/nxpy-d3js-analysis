@@ -23,7 +23,7 @@ def getInitControlG(path):
 
     # Control关系中，relTag和src一一对应
     G = nx.DiGraph()
-    # 构建初始图G, 控制人共70420个节点
+    # 构建初始图G
     for _, row in control.iterrows():
         # 默认每个节点非根且不存在交叉持股, 具体情况后续判定
         if row["src"] not in G.nodes():
@@ -39,7 +39,6 @@ def getInitControlG(path):
             row["src"],
             row["destn"],
             rate=row["rate"],
-            # relType=row["relType"],
         )
     print("----------控制人表数据读取完成----------")
     # 切分子图
@@ -82,14 +81,14 @@ def getRootOfControlG(subG):
                         s.append(n)
                         flag = True
                 tmpG.remove_nodes_from(s)
-            # 拓扑排序后仍有节点则这些节点构成交叉持股
+            # 拓扑排序后仍有节点, 则这些节点构成交叉持股
             for n in tmpG.nodes:
-                G.nodes[n]["isCross"] = 1  # 标记无法拓扑排序的公司是交叉持股
+                G.nodes[n]["isCross"] = 1
             rootG.append(G)
             continue
         # 仅有一个根, 则该节点必为所有公司的实际控制人
         # 用拓扑排序判断是否存在局部的交叉持股
-        tmpG = nx.DiGraph(G)  # 必须通过创建新图对象来创建副本, 直接赋值会会被冻结图对象, 无法修改
+        tmpG = nx.DiGraph(G)
         flag = True
         while flag:
             flag = False
@@ -141,14 +140,19 @@ def graphs2json(GList):
                 group, c, size = 2, "root", 3
             else:
                 group, c, size = 3, "normal", 1
-            tmp["nodes"].append(
-                {"group": group, "class": c, "size": size, "Gid": Gid, "id": n}
-            )
+            tmp["nodes"].append({
+                "group": group, 
+                "class": c, 
+                "size": size, 
+                "Gid": Gid, 
+                "id": n
+            })
         for u, v in item.edges:
-            tmp["links"].append(
-                {"source": u, "target": v, "rate": item[u][v]["rate"]}
-            )
-        
+            tmp["links"].append({
+                "source": u, 
+                "target": v, 
+                "rate": item[u][v]["rate"]
+            })
         # Control关系json
         if inControl:
             controlList["nodes"] += tmp["nodes"]
@@ -163,7 +167,6 @@ def graphs2json(GList):
                 doubleCount += 2
                 # 每个json存储的点不超过3000个
                 if doubleCount >= 3000:
-                    # doubleList.append(doubleCurList)
                     path = "./frontend/res/control/" + "double_" + str(i) + ".json"
                     with open(path, "w") as f:
                         json.dump(doubleCurList, f)

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 txn = {
     "code": ['EK95','8002','8003','7743'],
     "isLoan": 0,
+    "txnAmountLimit": 90000.0,
 }
 loan = {
     "code": ['6101' ,'6102', '6104' , '61' , '6151' , '2202' , '6002' , '6003' ,
@@ -47,19 +48,39 @@ def getInitmoneyCollectionG(path):
         }
         i = 0
         for line in originData:
-            if i == 0:
-                print("行标：", line[0], line[29], line[1], line[4], line[7], line[6], line[33], line[21])
+            # 是否读入数据的标志
+            canIn = False
             # 忽略标题行和Id为空的行
             if line[tag["myId"]] == '' or line[tag["recipId"]] == '' or i == 0:
                 i += 1
                 continue
-            # 贷款和转账条件筛选
-            # 贷款和转账金额应大于10万
-            if float(line[tag["txnAmount"]]) < loan["txnAmountLimit"]:
-                continue
+            # 贷款和转账条件筛选            
             # 转账条件筛选
-            if int(line[tag["isLoan"]]) == txn["isLoan"] and line[tag["txnCode"]] in txn["code"]:
+            if (
+                int(line[tag["isLoan"]]) == txn["isLoan"] 
+                and line[tag["txnCode"]] in txn["code"]
+                and float(line[tag["txnAmount"]]) >= txn["txnAmountLimit"]
+            ):
                 codes[1].append(line[tag["txnCode"]])
+                canIn = True
+            # 贷款条件筛选
+            elif (
+                not line[tag["status"]] == "R" 
+                and float(line[tag["txnAmount"]]) >= loan["txnAmountLimit"] 
+                and line[tag["txnCode"]] in loan["code"] 
+                and int(line[tag["isLoan"]]) == loan["isLoan"] 
+                and int(line[tag["status"]]) == loan["status"]
+            ):
+                flag = False
+                for item in loan["abstract"]:
+                    if re.search(item, line[tag["abstract"]]):
+                        flag = True
+                        break
+                if flag:
+                    continue
+                codes[0].append(line[tag["txnCode"]])
+                canIn = True
+            if canIn:
                 # 构建初始图G, 将符合条件的节点和边加入G
                 if not G.has_node(line[tag["myId"]]):
                     if len(line[tag["myId"]]) >= 15:
@@ -77,36 +98,7 @@ def getInitmoneyCollectionG(path):
                     isLoan=int(line[tag["isLoan"]]),
                     txnCode=line[tag["txnCode"]],
                     width=float(line[tag["txnAmount"]])**0.5 / 1800
-                )
-            # 贷款条件筛选
-            elif not line[tag["status"]] == "R":
-                if line[tag["txnCode"]] in loan["code"] and int(line[tag["isLoan"]]) == loan["isLoan"] and int(line[tag["status"]]) == loan["status"]:
-                    flag = False
-                    for item in loan["abstract"]:
-                        if re.search(item, line[tag["abstract"]]):
-                            flag = True
-                            break
-                    if flag:
-                        continue
-                    codes[0].append(line[tag["txnCode"]])
-                    # 构建初始图G, 将符合条件的节点和边加入G
-                    if not G.has_node(line[tag["myId"]]):
-                        if len(line[tag["myId"]]) >= 15:
-                            line[tag["myId"]] = line[tag["myId"]][:-2] + '00'
-                        G.add_node(line[tag["myId"]], netIncome=0, std=0)
-                    if not G.has_node(line[tag["recipId"]]):
-                        if len(line[tag["recipId"]]) >= 15:
-                            line[tag["recipId"]] = line[tag["recipId"]][:-2] + '00'
-                        G.add_node(line[tag["recipId"]], netIncome=0, std=0)
-                    G.add_edge(
-                        line[tag["myId"]],
-                        line[tag["recipId"]],
-                        txnAmount=float(line[tag["txnAmount"]]),
-                        txnDateTime=int(line[tag["txnDateTime"]]),
-                        isLoan=int(line[tag["isLoan"]]),
-                        txnCode=line[tag["txnCode"]],
-                        width=float(line[tag["txnAmount"]])**0.5 / 1800
-                    )                         
+                )                         
             i += 1
     print("----------资金归集表数据读取完成----------")
     print("符合条件的贷款和转账关系总数：", G.size())
@@ -146,7 +138,9 @@ def getNetIncome(Glist):
                     netIncome -= subG[n][c][k2]["txnAmount"]
             subG.nodes[n]["netIncome"] = netIncome
         # 标准化净资金流入, 用于可视化时的size, 范围为[5, 14]
-        d = [abs(x) for x in nx.get_node_attributes(subG, "netIncome").values()]
+        d = [abs(x) 
+            for x in nx.get_node_attributes(subG, "netIncome").values()
+        ]
         maxNetIncome, minNetIncome = max(d), min(d)
         if maxNetIncome == minNetIncome:
             for n in subG.nodes():
@@ -154,7 +148,9 @@ def getNetIncome(Glist):
         else:
             k = 9/(maxNetIncome - minNetIncome)
             for n in subG.nodes():
-                subG.nodes[n]["std"] = 5 + k * (abs(subG.nodes[n]["netIncome"]) - minNetIncome)
+                subG.nodes[n]["std"] = 5 + k * (
+                        abs(subG.nodes[n]["netIncome"]) - minNetIncome
+                    )
     print("----------净资金流入计算完成----------")
 
 
@@ -165,7 +161,7 @@ def findShellEnterprise(GList):
         GList: 资金归集子图列表
     Returns:
         se: 企业资金归集图
-        seNodes: 中间企业列表
+        seNodes: 资金归集企业列表
     '''
     se = nx.MultiDiGraph()
     seNodes = [[] for i in range(3)]
@@ -188,22 +184,54 @@ def findShellEnterprise(GList):
                     for c in children:
                         for k2 in subG[n][c]:
                             # 若出边非转账或三元组上任意两个节点相同, 直接跳过
-                            if subG[n][c][k2]["isLoan"] == loan["isLoan"] or c == f or c == n or n == f:
+                            if subG[n][c][k2]["isLoan"] == loan["isLoan"]:
                                 continue
                             # 日期相差五天, 且金额变化在0.9-1.0范围内
                             rate = subG[n][c][k2]["txnAmount"] / subG[f][n][k1]["txnAmount"]
-                            if subG[n][c][k2]["txnDateTime"] - subG[f][n][k1]["txnDateTime"] <= 5 and subG[n][c][k2]["txnDateTime"] > subG[f][n][k1]["txnDateTime"] and rate >= bestMatchRate and rate <= 1:
+                            if (
+                                subG[n][c][k2]["txnDateTime"] - subG[f][n][k1]["txnDateTime"] <= 5 
+                                and subG[n][c][k2]["txnDateTime"] >= subG[f][n][k1]["txnDateTime"]
+                                and rate >= bestMatchRate
+                                and rate <= 1
+                            ):
                                 bestMatchC, bestMatchRate, bestMatchF = c, rate, f
                                 bestMatchLoan, bestMatchTxn = subG[f][n][k1]["txnAmount"], subG[n][c][k2]["txnAmount"]
                                 bestMatchDate = (subG[f][n][k1]["txnDateTime"], subG[n][c][k2]["txnDateTime"])
                         # 如果找到了匹配到的贷款和转账, 则修改节点属性, 将其记录到se中
                     if bestMatchC:
-                        print("father: ", bestMatchF, "node: ", n, "child: ", bestMatchC, "交易码:：", [subG[bestMatchF][n][k1]["txnCode"], subG[n][bestMatchC][k2]["txnCode"]])
-                        print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
+                        print(
+                            "father: ", bestMatchF, 
+                            "node: ", n, 
+                            "child: ", bestMatchC, "\n"
+                            "贷款交易码：", subG[bestMatchF][n][k1]["txnCode"], 
+                            "转账交易码：", subG[n][bestMatchC][k2]["txnCode"]
+                        )
+                        print(
+                            "rate: ", bestMatchRate, 
+                            "贷款金额: ", bestMatchLoan, 
+                            "转账金额: ", bestMatchTxn, 
+                            "贷款和转账日期: ", bestMatchDate
+                        )
                         codes[0].append(subG[f][n][k1]["txnCode"])
                         codes[1].append(subG[n][c][k2]["txnCode"])
-                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, txnDateTime=bestMatchDate[0], txnCode=subG[bestMatchF][n][k1]["txnCode"], width=subG[bestMatchF][n][k1]["width"])
-                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, txnDateTime=bestMatchDate[1], txnCode=subG[n][bestMatchC][k2]["txnCode"], width=subG[n][bestMatchC][k2]["width"])
+                        se.add_edge(
+                            bestMatchF, 
+                            n, 
+                            txnAmount=bestMatchLoan, 
+                            isLoan=0, 
+                            txnDateTime=bestMatchDate[0], 
+                            txnCode=subG[bestMatchF][n][k1]["txnCode"], 
+                            width=subG[bestMatchF][n][k1]["width"]
+                        )
+                        se.add_edge(
+                            n, 
+                            bestMatchC, 
+                            txnAmount=bestMatchTxn, 
+                            isLoan=1, 
+                            txnDateTime=bestMatchDate[1], 
+                            txnCode=subG[n][bestMatchC][k2]["txnCode"], 
+                            width=subG[n][bestMatchC][k2]["width"]
+                        )
                         seNodes[0].append(bestMatchF)
                         seNodes[1].append(n)
                         seNodes[2].append(bestMatchC)
@@ -217,7 +245,7 @@ def findShellEnterprise(GList):
         print("具有资金归集行为的提供贷款企业数量为：", len(seNodes[0]))
         print("具有资金归集行为的中间企业数量为：", len(seNodes[1]))
         print("具有资金归集行为的接收转账企业数量为：", len(seNodes[2]))
-        print("资金归集的中间企业列表：", seNodes[1])
+        print("资金归集的企业列表：", [seNodes[i][j] for i in range(3) for j in range(len(seNodes[i]))])
     return se, seNodes
 
 
