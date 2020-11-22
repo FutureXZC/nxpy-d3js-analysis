@@ -76,6 +76,7 @@ def getInitmoneyCollectionG(path):
                     txnDateTime=int(line[tag["txnDateTime"]]),
                     isLoan=int(line[tag["isLoan"]]),
                     txnCode=line[tag["txnCode"]],
+                    width=float(line[tag["txnAmount"]])**0.5 / 1800
                 )
             # 贷款条件筛选
             elif not line[tag["status"]] == "R":
@@ -104,6 +105,7 @@ def getInitmoneyCollectionG(path):
                         txnDateTime=int(line[tag["txnDateTime"]]),
                         isLoan=int(line[tag["isLoan"]]),
                         txnCode=line[tag["txnCode"]],
+                        width=float(line[tag["txnAmount"]])**0.5 / 1800
                     )                         
             i += 1
     print("----------资金归集表数据读取完成----------")
@@ -143,14 +145,14 @@ def getNetIncome(Glist):
                 for k2 in subG[n][c]:
                     netIncome -= subG[n][c][k2]["txnAmount"]
             subG.nodes[n]["netIncome"] = netIncome
-        # 标准化净资金流入, 用于可视化时的size, 
+        # 标准化净资金流入, 用于可视化时的size, 范围为[5, 14]
         d = [abs(x) for x in nx.get_node_attributes(subG, "netIncome").values()]
         maxNetIncome, minNetIncome = max(d), min(d)
         if maxNetIncome == minNetIncome:
             for n in subG.nodes():
-                subG.nodes[n]["std"] = 12
+                subG.nodes[n]["std"] = 9
         else:
-            k = 15/(maxNetIncome - minNetIncome)
+            k = 9/(maxNetIncome - minNetIncome)
             for n in subG.nodes():
                 subG.nodes[n]["std"] = 5 + k * (abs(subG.nodes[n]["netIncome"]) - minNetIncome)
     print("----------净资金流入计算完成----------")
@@ -200,8 +202,8 @@ def findShellEnterprise(GList):
                         print("rate: ", bestMatchRate, "贷款金额: ", bestMatchLoan, "转账金额: ", bestMatchTxn, "贷款和转账日期: ", bestMatchDate)
                         codes[0].append(subG[f][n][k1]["txnCode"])
                         codes[1].append(subG[n][c][k2]["txnCode"])
-                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, txnDateTime=bestMatchDate[0], txnCode=subG[bestMatchF][n][k1]["txnCode"])
-                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, txnDateTime=bestMatchDate[1], txnCode=subG[n][bestMatchC][k2]["txnCode"])
+                        se.add_edge(bestMatchF, n, txnAmount=bestMatchLoan, isLoan=0, txnDateTime=bestMatchDate[0], txnCode=subG[bestMatchF][n][k1]["txnCode"], width=subG[bestMatchF][n][k1]["width"])
+                        se.add_edge(n, bestMatchC, txnAmount=bestMatchTxn, isLoan=1, txnDateTime=bestMatchDate[1], txnCode=subG[n][bestMatchC][k2]["txnCode"], width=subG[n][bestMatchC][k2]["width"])
                         seNodes[0].append(bestMatchF)
                         seNodes[1].append(n)
                         seNodes[2].append(bestMatchC)
@@ -247,12 +249,13 @@ def graphs2json(GList, se, seNodes):
         for u in item.nodes():
             for v in list(item.neighbors(u)):
                 for k in item[u][v]:
+                    dateTmp = '2020-09-' + str(item[u][v][k]["txnDateTime"])[-2:] 
                     tmp["links"].append(
-                        {"source": u, "target": v, "rate": item[u][v][k]["txnAmount"], "txnDate": item[u][v][k]["txnDateTime"], "isLoan": item[u][v][k]["isLoan"], "txnCode": item[u][v][k]["txnCode"]}
+                        {"source": u, "target": v, "date": dateTmp, "width": item[u][v][k]["width"]}
                     )
         allCount += len(tmp["nodes"])
-        # 每个json存储的点不超过3000个
-        if allCount >= 2950:
+        # 每个json存储的点不超过1500个
+        if allCount >= 1500:
             print("第", i, "个json的节点数量：", len(allList["nodes"]))
             path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
             with open(path, "w") as f:
@@ -279,13 +282,13 @@ def graphs2json(GList, se, seNodes):
             group, c = 1, "mid"
         elif n in seNodes[0]:
             group, c = 0, "start"
-        collectionList["nodes"].append({"group": group, "class": c, "size": 15, "Gid": Gid, "id": n})
+        collectionList["nodes"].append({"group": group, "class": c, "size": 9, "Gid": Gid, "id": n})
         Gid += 1
     for u in se.nodes():
         for v in list(se.neighbors(u)):
             for k in se[u][v]:
                 collectionList["links"].append(
-                    {"source": u, "target": v, "rate": se[u][v][k]["txnAmount"], "txnDate": se[u][v][k]["txnDateTime"], "isLoan": se[u][v][k]["isLoan"], "txnCode": se[u][v][k]["txnCode"]}
+                    {"source": u, "target": v, "width": se[u][v][k]["width"]}
                 )
     print("存储具有资金归集行为企业信息的json的节点数量：", len(collectionList["nodes"]))
     with open(r"./frontend/res/moneyCollection/moneyCollection.json", "w") as f:
