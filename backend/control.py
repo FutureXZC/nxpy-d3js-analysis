@@ -129,14 +129,14 @@ def graphs2json(GList):
     for item in GList:
         tmp["nodes"], tmp["links"] = [], []
         # 初始化子图数据, 先后加点和边
-        inControl, inCross = False, False
+        inControl, inCross, isIn = False, False, False
         for n in item.nodes:
             if item.nodes[n]["isControl"]:
                 group, c, size = 0, "control", 5
-                inControl = True
+                inControl, isIn = True, True
             elif item.nodes[n]["isCross"]:
                 group, c, size = 1, "cross", 3
-                inCross = True
+                inCross, isIn = True, True
             elif item.nodes[n]["isRoot"]:
                 group, c, size = 2, "root", 3
             else:
@@ -148,6 +148,7 @@ def graphs2json(GList):
             tmp["links"].append(
                 {"source": u, "target": v, "rate": item[u][v]["rate"]}
             )
+        
         # Control关系json
         if inControl:
             controlList["nodes"] += tmp["nodes"]
@@ -156,35 +157,36 @@ def graphs2json(GList):
         if inCross:
             crossList["nodes"] += tmp["nodes"]
             crossList["links"] += tmp["links"]
-        # 其他双节点json
-        if len(tmp["nodes"]) == 2:
-            doubleCount += 2
-            # 每个json存储的点不超过3000个
-            if doubleCount >= 3000:
-                # doubleList.append(doubleCurList)
-                path = "./frontend/res/control/" + "double_" + str(i) + ".json"
-                with open(path, "w") as f:
-                    json.dump(doubleCurList, f)
-                i += 1
-                doubleCount = 0
-                doubleCurList["nodes"], doubleCurList["links"] = [], []
+        if not isIn:
+            # 其他双节点json
+            if len(tmp["nodes"]) == 2:
+                doubleCount += 2
+                # 每个json存储的点不超过3000个
+                if doubleCount >= 3000:
+                    # doubleList.append(doubleCurList)
+                    path = "./frontend/res/control/" + "double_" + str(i) + ".json"
+                    with open(path, "w") as f:
+                        json.dump(doubleCurList, f)
+                    i += 1
+                    doubleCount = 0
+                    doubleCurList["nodes"], doubleCurList["links"] = [], []
+                else:
+                    doubleCurList["nodes"] += tmp["nodes"]
+                    doubleCurList["links"] += tmp["links"]
+            # 其他多节点json
             else:
-                doubleCurList["nodes"] += tmp["nodes"]
-                doubleCurList["links"] += tmp["links"]
-        # 其他多节点json
-        else:
-            multiCount += len(tmp["nodes"])
-            # 每个json存储的点以2950个为阈值
-            if multiCount >= 2950:
-                path = "./frontend/res/control/" + "multi_" + str(j) + ".json"
-                with open(path, "w") as f:
-                    json.dump(multiCurList, f)
-                j += 1
-                multiCount = 0
-                multiCurList["nodes"], multiCurList["links"] = [], []
-            else:
-                multiCurList["nodes"] += tmp["nodes"]
-                multiCurList["links"] += tmp["links"]
+                multiCount += len(tmp["nodes"])
+                # 每个json存储的点以2950个为阈值
+                if multiCount >= 2950:
+                    path = "./frontend/res/control/" + "multi_" + str(j) + ".json"
+                    with open(path, "w") as f:
+                        json.dump(multiCurList, f)
+                    j += 1
+                    multiCount = 0
+                    multiCurList["nodes"], multiCurList["links"] = [], []
+                else:
+                    multiCurList["nodes"] += tmp["nodes"]
+                    multiCurList["links"] += tmp["links"]
         Gid += 1
     # 剩余子图信息存到下一个json中
     if len(tmp["nodes"]) == 2:
