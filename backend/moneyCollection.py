@@ -21,6 +21,7 @@ loan = {
                 '现金管理子账户占用上存金额补足本次扣款', '公积金放款', '贷款并账']
 }
 
+
 def getInitmoneyCollectionG(path):
     """
     读取资金归集的excel表格到DataFrame, 并切分子图
@@ -212,8 +213,8 @@ def findShellEnterprise(GList):
                             "转账金额: ", bestMatchTxn, 
                             "贷款和转账日期: ", bestMatchDate
                         )
-                        codes[0].append(subG[f][n][k1]["txnCode"])
-                        codes[1].append(subG[n][c][k2]["txnCode"])
+                        codes[0].append(subG[bestMatchF][n][k1]["txnCode"])
+                        codes[1].append(subG[n][bestMatchC][k2]["txnCode"])
                         se.add_edge(
                             bestMatchF, 
                             n, 
@@ -247,7 +248,6 @@ def findShellEnterprise(GList):
         print("具有资金归集行为的接收转账企业数量为：", len(seNodes[2]))
         print("资金归集的企业列表：", [seNodes[i][j] for i in range(3) for j in range(len(seNodes[i]))])
     return se, seNodes
-
 
 
 def graphs2json(GList, se, seNodes):
