@@ -373,16 +373,16 @@ def ansJson(GList):
     print("focusList", len(focusList["nodes"]))
     print("multiNormalList", len(multiNormalList["nodes"]))
     # 将上述数据写入文件
-    with open(r"./backend/answers/guarantee/circle.json", "w") as f:
+    with open(r"./answers/guarantee/circle.json", "w") as f:
         json.dump(circleList, f)
-    with open(r"./backend/answers/guarantee/mutual.json", "w") as f:
+    with open(r"./answers/guarantee/mutual.json", "w") as f:
         json.dump(mutualList, f)
-    with open(r"./backend/answers/guarantee/cross.json", "w") as f:
+    with open(r"./answers/guarantee/cross.json", "w") as f:
         json.dump(crossList, f)
-    with open(r"./backend/answers/guarantee/focus.json", "w") as f:
+    with open(r"./answers/guarantee/focus.json", "w") as f:
         json.dump(focusList, f)
-    with open(r"./backend/answers/guarantee/doubleNormal.json", "w") as f:
+    with open(r"./answers/guarantee/doubleNormal.json", "w") as f:
         json.dump(doubleNormalList, f)
-    with open(r"./backend/answers/guarantee/multiNormal.json", "w") as f:
+    with open(r"./answers/guarantee/multiNormal.json", "w") as f:
         json.dump(multiNormalList, f)
     print("----------担保关系的json导出完成完成----------")

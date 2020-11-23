@@ -332,5 +332,5 @@ def ansJson(seNodes):
         se: 按中心企业切分的资金归集识别列表
         seNodes: 中心企业列表
     '''
-    with open(r"./backend/answers/moneyCollection/moneyCollection.json", "w") as f:
+    with open(r"./answers/moneyCollection/moneyCollection.json", "w") as f:
         json.dump({"list": seNodes}, f)

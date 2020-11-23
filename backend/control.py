@@ -277,10 +277,10 @@ def ansJson(GList):
                     "to": n
                 })
     # 将上述数据写入文件
-    with open(r"./backend/answers/control/control.json", "w") as f:
+    with open(r"./answers/control/control.json", "w") as f:
         json.dump(controlList, f)
-    with open(r"./backend/answers/control/cross.json", "w") as f:
+    with open(r"./answers/control/cross.json", "w") as f:
         json.dump(crossList, f)
-    with open(r"./backend/answers/control/normal.json", "w") as f:
+    with open(r"./answers/control/normal.json", "w") as f:
         json.dump(normalList, f)
     print("----------控制人表的答案json导出完成----------")
