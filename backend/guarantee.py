@@ -326,7 +326,6 @@ def ansJson(GList):
                 tmp["nodes"].append({
                     "class": c[riskCount-1], 
                     "ctx": ctx, 
-                    "Gid": Gid, 
                     "id": n, 
                     "m": item.nodes[n]["m"]
                 })
@@ -334,15 +333,14 @@ def ansJson(GList):
                 tmp["nodes"].append({
                     "class": item.nodes[n]["guarType"][0], 
                     "ctx": ctx, 
-                    "Gid": Gid, 
                     "id": n, 
                     "m": item.nodes[n]["m"]
                 })
         # 加边
         for u, v in item.edges:
             tmp["links"].append({
-                "source": u, 
-                "target": v, 
+                "from": u, 
+                "to": v, 
                 "amount": item[u][v]["amount"]
             })
         # 存到对应类型的json中
