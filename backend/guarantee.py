@@ -142,7 +142,7 @@ def markRiskOfGuaranteeG(GList):
     return GList
 
 
-def harmonicDistance(subG):
+def riskQuantification(subG):
     """
     标记节点的风险值m
     Params:
@@ -172,7 +172,7 @@ def harmonicDistance(subG):
 
 def graphs2json(GList):
     """
-    将图数据输出为json文件
+    将图数据输出为前端可视化用的json文件
     Params:
         GList: 图数据
     Outputs:
@@ -252,7 +252,7 @@ def graphs2json(GList):
                     doubleNormalList["links"] += (tmp["links"])
                 else:
                     print("doubleNormalList", len(doubleNormalList["nodes"]))
-                    with open("./frontend/res/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
+                    with open("./frontend/public/res/json/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
                         json.dump(doubleNormalList, f)
                     i += 1
                     doubleCount = 2
@@ -266,7 +266,7 @@ def graphs2json(GList):
     # 将剩余的双节点子图存到下一个json中
     if doubleNormalList["nodes"]:
         print("doubleNormalList", len(doubleNormalList["nodes"]))
-        with open("./frontend/res/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
+        with open("./frontend/public/res/json/guarantee/doubleNormal_" + str(i) + ".json", "w") as f:
             json.dump(doubleNormalList, f)
     print("circleList", len(circleList["nodes"]))
     print("mutualList", len(mutualList["nodes"]))
@@ -274,14 +274,115 @@ def graphs2json(GList):
     print("focusList", len(focusList["nodes"]))
     print("multiNormalList", len(multiNormalList["nodes"]))
     # 将上述数据写入文件
-    with open(r"./frontend/res/guarantee/circle.json", "w") as f:
+    with open(r"./frontend/public/res/json/guarantee/circle.json", "w") as f:
         json.dump(circleList, f)
-    with open(r"./frontend/res/guarantee/mutual.json", "w") as f:
+    with open(r"./frontend/public/res/json/guarantee/mutual.json", "w") as f:
         json.dump(mutualList, f)
-    with open(r"./frontend/res/guarantee/cross.json", "w") as f:
+    with open(r"./frontend/republic/res/jsons/guarantee/cross.json", "w") as f:
         json.dump(crossList, f)
-    with open(r"./frontend/res/guarantee/focus.json", "w") as f:
+    with open(r"./frontend/public/res/json/guarantee/focus.json", "w") as f:
         json.dump(focusList, f)
-    with open(r"./frontend/res/guarantee/multiNormal.json", "w") as f:
+    with open(r"./frontend/public/res/json/guarantee/multiNormal.json", "w") as f:
+        json.dump(multiNormalList, f)
+    print("----------担保关系的json导出完成完成----------")
+
+
+def ansJson(GList):
+    """
+    将图数据输出为答案的json文件
+    Params:
+        GList: 图数据
+    Outputs:
+        输出转化后的json文件到filePath1和filepath2下
+    """
+    circleList = {"links": [], "nodes": []}
+    mutualList = {"links": [], "nodes": []}
+    crossList = {"links": [], "nodes": []}
+    focusList = {"links": [], "nodes": []}
+    doubleNormalList = {"links": [], "nodes": []}
+    multiNormalList = {"links": [], "nodes": []}
+    Gid = 0  # 子图编号
+    c = ["doubleRisk", "tripleRisk", "quadraRisk"]
+    for item in GList:
+        # 初始化子图数据, 先后加点和边
+        isMutual, isCircle, isCross, isFocus, isUnusual = False, False, False, False, False
+        tmp = {"links": [], "nodes": []}
+        for n in item.nodes:
+            riskCount = len(item.nodes[n]["guarType"]) - 1
+            # Chain补入
+            if nx.number_of_nodes(item) > 2 and "Chain" not in item.nodes[n]["guarType"]:
+                ctx = ', '.join(item.nodes[n]["guarType"]) + ', Chain'
+            else:
+                ctx = ', '.join(item.nodes[n]["guarType"])
+            if "Mutual" in item.nodes[n]["guarType"]:
+                isMutual, isUnusual = True, True
+            if "Focus" in item.nodes[n]["guarType"]:
+                isFocus, isUnusual = True, True
+            if "Cross" in item.nodes[n]["guarType"]:
+                isCross, isUnusual = True, True
+            if "Circle" in item.nodes[n]["guarType"]:
+                isCircle, isUnusual = True, True
+            if riskCount > 0:
+                tmp["nodes"].append({
+                    "class": c[riskCount-1], 
+                    "ctx": ctx, 
+                    "Gid": Gid, 
+                    "id": n, 
+                    "m": item.nodes[n]["m"]
+                })
+            else:
+                tmp["nodes"].append({
+                    "class": item.nodes[n]["guarType"][0], 
+                    "ctx": ctx, 
+                    "Gid": Gid, 
+                    "id": n, 
+                    "m": item.nodes[n]["m"]
+                })
+        # 加边
+        for u, v in item.edges:
+            tmp["links"].append({
+                "source": u, 
+                "target": v, 
+                "amount": item[u][v]["amount"]
+            })
+        # 存到对应类型的json中
+        if isUnusual:
+            if isCircle:
+                circleList["nodes"] += (tmp["nodes"])
+                circleList["links"] += (tmp["links"])
+            if isMutual:
+                mutualList["nodes"] += (tmp["nodes"])
+                mutualList["links"] += (tmp["links"])
+            if isCross:
+                crossList["nodes"] += (tmp["nodes"])
+                crossList["links"] += (tmp["links"])
+            if isFocus:
+                focusList["nodes"] += (tmp["nodes"])
+                focusList["links"] += (tmp["links"])
+        else:  # "Chain"
+            if nx.number_of_nodes(item) == 2:
+                doubleNormalList["nodes"] += (tmp["nodes"])
+                doubleNormalList["links"] += (tmp["links"])
+            else:
+                multiNormalList["nodes"] += (tmp["nodes"])
+                multiNormalList["links"] += (tmp["links"])
+        Gid += 1
+    print("circleList", len(circleList["nodes"]))
+    print("mutualList", len(mutualList["nodes"]))
+    print("crossList", len(crossList["nodes"]))
+    print("focusList", len(focusList["nodes"]))
+    print("multiNormalList", len(multiNormalList["nodes"]))
+    # 将上述数据写入文件
+    with open(r"./backend/answers/guarantee/circle.json", "w") as f:
+        json.dump(circleList, f)
+    with open(r"./backend/answers/guarantee/mutual.json", "w") as f:
+        json.dump(mutualList, f)
+    with open(r"./backend/answers/guarantee/cross.json", "w") as f:
+        json.dump(crossList, f)
+    with open(r"./backend/answers/guarantee/focus.json", "w") as f:
+        json.dump(focusList, f)
+    with open(r"./backend/answers/guarantee/doubleNormal.json", "w") as f:
+        json.dump(doubleNormalList, f)
+    with open(r"./backend/answers/guarantee/multiNormal.json", "w") as f:
         json.dump(multiNormalList, f)
     print("----------担保关系的json导出完成完成----------")

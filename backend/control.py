@@ -111,7 +111,7 @@ def getRootOfControlG(subG):
 
 def graphs2json(GList):
     """
-    将图数据输出为json文件
+    将图数据输出为前端可视化用的json文件
     Params:
         GList: 图数据
     Outputs:
@@ -167,7 +167,7 @@ def graphs2json(GList):
                 doubleCount += 2
                 # 每个json存储的点不超过3000个
                 if doubleCount >= 3000:
-                    path = "./frontend/res/control/" + "double_" + str(i) + ".json"
+                    path = "./frontend/public/res/json/control/" + "double_" + str(i) + ".json"
                     with open(path, "w") as f:
                         json.dump(doubleCurList, f)
                     i += 1
@@ -181,7 +181,7 @@ def graphs2json(GList):
                 multiCount += len(tmp["nodes"])
                 # 每个json存储的点以2950个为阈值
                 if multiCount >= 2950:
-                    path = "./frontend/res/control/" + "multi_" + str(j) + ".json"
+                    path = "./frontend/public/res/json/control/" + "multi_" + str(j) + ".json"
                     with open(path, "w") as f:
                         json.dump(multiCurList, f)
                     j += 1
@@ -199,16 +199,88 @@ def graphs2json(GList):
         multiCurList["nodes"] += tmp["nodes"]
         multiCurList["links"] += tmp["links"]
     if doubleCurList:
-        path = "./frontend/res/control/" + "double_" + str(i) + ".json"
+        path = "./frontend/public/res/json/control/" + "double_" + str(i) + ".json"
         with open(path, "w") as f:
             json.dump(doubleCurList, f)
     if multiCurList:
-        path = "./frontend/res/control/" + "multi_" + str(j) + ".json"
+        path = "./frontend/public/res/json/control/" + "multi_" + str(j) + ".json"
         with open(path, "w") as f:
             json.dump(multiCurList, f)
     # 将上述数据写入文件
-    with open(r"./frontend/res/control/control.json", "w") as f:
+    with open(r"./frontend/public/res/json/control/control.json", "w") as f:
         json.dump(controlList, f)
-    with open(r"./frontend/res/control/cross.json", "w") as f:
+    with open(r"./frontend/public/res/json/control/cross.json", "w") as f:
         json.dump(crossList, f)
     print("----------控制人json导出完成----------")
+
+
+def ansJson(GList):
+    """
+    将图数据输出为答案的json文件
+    Params:
+        GList: 图数据
+    Outputs:
+        输出转化后的json文件
+    """
+    controlList = {"links": []}
+    crossList = {"links": []}
+    normalList = {"links": []}
+
+    for item in GList:
+        root = ""
+        controlNodes = list()
+        # 找根、交叉持股和control关系
+        inControl, inCross = False, False
+        for n in item.nodes:
+            if item.nodes[n]["isCross"]:
+                inCross = True
+                break
+            elif item.nodes[n]["isControl"]:
+                inControl = True
+                controlNodes.append(n)
+            elif item.nodes[n]["isRoot"]:
+                root = n
+            else:
+                continue
+        # 存交叉持股关系
+        if inCross:
+            for n in item.nodes():
+                crossList["links"].append({
+                    "from": "null",
+                    "to": n
+                })
+            continue
+        # 存Control关系
+        if inControl:
+            for n in item.nodes():
+                if not n in controlNodes:
+                    controlList["links"].append({
+                        "from": controlNodes,
+                        "to": n
+                    })
+                else:
+                    controlList["links"].append({
+                        "from": "null",
+                        "to": n
+                    })
+            continue
+        # 存实际控制人root关系
+        for n in item.nodes():
+            if not n == root:
+                normalList["links"].append({
+                    "from": root,
+                    "to": n
+                })
+            else:
+                normalList["links"].append({
+                    "from": "null",
+                    "to": n
+                })
+    # 将上述数据写入文件
+    with open(r"./backend/answers/control/control.json", "w") as f:
+        json.dump(controlList, f)
+    with open(r"./backend/answers/control/cross.json", "w") as f:
+        json.dump(crossList, f)
+    with open(r"./backend/answers/control/normal.json", "w") as f:
+        json.dump(normalList, f)
+    print("----------控制人表的答案json导出完成----------")

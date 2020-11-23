@@ -246,7 +246,8 @@ def findShellEnterprise(GList):
         print("具有资金归集行为的提供贷款企业数量为：", len(seNodes[0]))
         print("具有资金归集行为的中间企业数量为：", len(seNodes[1]))
         print("具有资金归集行为的接收转账企业数量为：", len(seNodes[2]))
-        print("资金归集的企业列表：", [seNodes[i][j] for i in range(3) for j in range(len(seNodes[i]))])
+        seNodes = [seNodes[i][j] for i in range(3) for j in range(len(seNodes[i]))]
+        print("资金归集的企业列表：", seNodes)
     return se, seNodes
 
 
@@ -285,7 +286,7 @@ def graphs2json(GList, se, seNodes):
         # 每个json存储的点不超过1500个
         if allCount >= 1500:
             print("第", i, "个json的节点数量：", len(allList["nodes"]))
-            path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
+            path = "./frontend/public/res/json/moneyCollection/" + "all_" + str(i) + ".json"
             with open(path, "w") as f:
                 json.dump(allList, f)
             i += 1
@@ -300,7 +301,7 @@ def graphs2json(GList, se, seNodes):
     # 清空还未存储的点
     if allList["nodes"]:
         print("第", i, "个json的节点数量：", len(allList["nodes"]))
-        path = "./frontend/res/moneyCollection/" + "all_" + str(i) + ".json"
+        path = "./frontend/public/res/json/moneyCollection/" + "all_" + str(i) + ".json"
         with open(path, "w") as f:
             json.dump(allList, f)
     # 存储具有资金归集行为的点
@@ -319,6 +320,17 @@ def graphs2json(GList, se, seNodes):
                     {"source": u, "target": v, "width": se[u][v][k]["width"]}
                 )
     print("存储具有资金归集行为企业信息的json的节点数量：", len(collectionList["nodes"]))
-    with open(r"./frontend/res/moneyCollection/moneyCollection.json", "w") as f:
+    with open(r"./frontend/public/res/json/moneyCollection/moneyCollection.json", "w") as f:
         json.dump(collectionList, f)
     print("----------资金归集json数据导出完成----------")
+
+
+def ansJson(seNodes):
+    '''
+    将资金归集的识别结果导出为json
+    Params:
+        se: 按中心企业切分的资金归集识别列表
+        seNodes: 中心企业列表
+    '''
+    with open(r"./backend/answers/moneyCollection/moneyCollection.json", "w") as f:
+        json.dump({"list": seNodes}, f)
