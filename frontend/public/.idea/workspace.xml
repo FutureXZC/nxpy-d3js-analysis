@@ -24,22 +24,24 @@
     <property name="DefaultHtmlFileTemplate" value="HTML File" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/guarantee_json" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/res/json/control_json" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="vue.rearranger.settings.migration" value="true" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\res\json\control_json" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\res\image" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\res\json\moneyCollection_json" />
       <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\guarantee_json" />
       <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\zijinguiji_html" />
-      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\moneyCollection" />
-      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\image" />
-      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\control_json" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\kongzhiren" />
-      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\other" />
       <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\html" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\res" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\json" />
+      <recent name="C:\Web_Coding\WebStorm 2020.2.3\jinrong\kongzhiren" />
     </key>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
@@ -63,7 +65,10 @@
       <workItem from="1605798342383" duration="1439000" />
       <workItem from="1605834624018" duration="704000" />
       <workItem from="1605836338001" duration="27056000" />
-      <workItem from="1605922563289" duration="21815000" />
+      <workItem from="1605922563289" duration="30864000" />
+      <workItem from="1606010730073" duration="39000" />
+      <workItem from="1606031596978" duration="21644000" />
+      <workItem from="1606093105624" duration="15528000" />
     </task>
     <servers />
   </component>
@@ -75,14 +80,19 @@
       <screen x="1920" y="0" width="1280" height="693" />
     </state>
     <state x="2291" y="87" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/1920.0.1280.693/0.0.1920.1040@1920.0.1280.693" timestamp="1605597440389" />
-    <state x="2217" y="151" key="run.anything.popup" timestamp="1605610674766">
-      <screen x="1920" y="0" width="1280" height="693" />
+    <state x="421" y="98" key="FileChooserDialogImpl" timestamp="1606010761111">
+      <screen x="0" y="0" width="1280" height="680" />
     </state>
+    <state x="421" y="98" key="FileChooserDialogImpl/0.0.1280.680@0.0.1280.680" timestamp="1606010761111" />
+    <state x="446" y="227" key="run.anything.popup" timestamp="1605970299528">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="446" y="227" key="run.anything.popup/1920.0.1280.693/0.0.1920.1040@0.0.1920.1040" timestamp="1605970299528" />
     <state x="2217" y="151" key="run.anything.popup/1920.0.1280.693/0.0.1920.1040@1920.0.1280.693" timestamp="1605610674766" />
-    <state x="2335" y="150" width="672" height="452" key="search.everywhere.popup" timestamp="1605594492629">
-      <screen x="1920" y="0" width="1280" height="693" />
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1606043426392">
+      <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/1920.0.1280.693/0.0.1920.1040@0.0.1920.1040" timestamp="1605513450635" />
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/1920.0.1280.693/0.0.1920.1040@0.0.1920.1040" timestamp="1606043426392" />
     <state x="2335" y="150" width="672" height="452" key="search.everywhere.popup/1920.0.1280.693/0.0.1920.1040@1920.0.1280.693" timestamp="1605594492629" />
   </component>
 </project>

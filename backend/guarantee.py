@@ -20,7 +20,7 @@ def getInitGuaranteeG(path):
     # 担保金额为0的样本视为无效的担保, 直接删去, 可减少870条边
     guarantee = guarantee[~guarantee["amount"].isin([0])]
 
-    # 构建初始图G, 一共18711个节点, 13478条边
+    # 构建初始图G
     G = nx.DiGraph()
     for _, row in guarantee.iterrows():
         G.add_node(row["src"], guarType=[], m=0.0, std=0.0)
@@ -32,7 +32,7 @@ def getInitGuaranteeG(path):
             amount=row["amount"],
             mij=0,
         )
-    # 切分7158个子图
+    # 切分子图
     tmp = nx.to_undirected(G)
     subG = list()
     for c in nx.connected_components(tmp):
