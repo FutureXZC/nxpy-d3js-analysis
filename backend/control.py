@@ -44,8 +44,15 @@ def getInitControlG(path):
     # 切分子图
     tmp = nx.to_undirected(G)
     subG = list()
+    doubleCount = 0
     for c in nx.connected_components(tmp):
         subG.append(G.subgraph(c))
+        if nx.number_of_nodes(subG[-1]) == 2:
+            doubleCount += 1
+    print("节点总数：", nx.number_of_nodes(G))
+    print("控制关系边总数：", nx.number_of_edges(G))
+    print("切分子图数量：", len(subG))
+    print("双节点子图数量：", doubleCount)
     print("----------控制人子图切分完成----------")
     return subG
 
@@ -225,7 +232,8 @@ def ansJson(GList):
     controlList = {"links": []}
     crossList = {"links": []}
     normalList = {"links": []}
-
+    rootCount, crossCount, controlCount, normalCount = 0, 0, 0, 0
+    figureCount = [0, 0, 0]
     for item in GList:
         root = ""
         controlNodes = list()
@@ -234,16 +242,21 @@ def ansJson(GList):
         for n in item.nodes:
             if item.nodes[n]["isCross"]:
                 inCross = True
-                break
+                crossCount += 1
+                # break
             elif item.nodes[n]["isControl"]:
                 inControl = True
                 controlNodes.append(n)
+                controlCount += 1
             elif item.nodes[n]["isRoot"]:
                 root = n
+                rootCount += 1
             else:
+                normalCount += 1
                 continue
         # 存交叉持股关系
         if inCross:
+            figureCount[0] += 1
             for n in item.nodes():
                 crossList["links"].append({
                     "from": "null",
@@ -252,6 +265,7 @@ def ansJson(GList):
             continue
         # 存Control关系
         if inControl:
+            figureCount[1] += 1
             for n in item.nodes():
                 if not n in controlNodes:
                     controlList["links"].append({
@@ -265,7 +279,9 @@ def ansJson(GList):
                     })
             continue
         # 存实际控制人root关系
+        figureCount[2] += 1
         for n in item.nodes():
+           
             if not n == root:
                 normalList["links"].append({
                     "from": root,
@@ -276,6 +292,13 @@ def ansJson(GList):
                     "from": "null",
                     "to": n
                 })
+    print("存在实际控制人的子图数量：", figureCount[2], "个")
+    print("包含Control关系的子图数量：", figureCount[1], "个")
+    print("存在交叉持股的子图数量：", figureCount[0], "个")
+    print("被标记为实际控制人root的节点数量：", rootCount, "个")
+    print("被标记为Control的节点数量：", controlCount, "个")
+    print("被标记为交叉持股的节点数量：", crossCount, "个")
+    print("被标记为非上述控制人或交叉持股的普通节点数量：", normalCount, "个")
     # 将上述数据写入文件
     with open(r"./answers/control/control.json", "w") as f:
         json.dump(controlList, f)
